@@ -13,9 +13,19 @@ from PySide6.QtWidgets import ( # type: ignore
 )
 
 class MainWindow(QMainWindow):
+    
+    def toggle_upload_section(self):
+        if self.voice_combo.currentText() == "Voice Cloning":
+            self.upload_label.show()
+            self.upload_button.show()
+        else:
+            self.upload_label.hide()
+            self.upload_button.hide()   
+
     def __init__(self):
         super().__init__()
         
+        ## Window Settings
         self.setWindowTitle("Text-To-Speech AI Studio")
         self.resize(1200, 800)
         self.setMinimumSize(900, 650)
@@ -32,59 +42,91 @@ class MainWindow(QMainWindow):
         main_layout.addLayout(left_layout, 3)
         main_layout.addLayout(right_layout, 1)
 
+        ## Text Input Section
         self.text_input = QTextEdit()
         self.text_input.setPlaceholderText("Type your text here...")
         left_layout.addWidget(self.text_input)
 
-        settings_layout = QHBoxLayout()
-        engine_layout = QVBoxLayout()
-        language_layout = QVBoxLayout()
-        voice_layout = QVBoxLayout()
+        # Generate Button
+        self.generate_button = QPushButton(
+            "🎙 GENERATE SPEECH"
+        )
+        left_layout.addWidget(self.generate_button)
 
-        engine_label = QLabel("Engine")
+        ## Settings Section
+        settings_title = QLabel("Settings")
+        right_layout.addWidget(settings_title)
+        settings_title.setStyleSheet(
+            "font-size: 16px;"
+            "font-weight: bold;"
+        )
+
+        # Language Selection
         language_label = QLabel("Language")
-        voice_label = QLabel("Voice Mode")
-    
-        self.engine_combo = QComboBox()
-        self.engine_combo.addItems([
-            "XTTS v2",
-            "F5-TTS"
-        ])
 
         self.language_combo = QComboBox()
         self.language_combo.addItems([
             "English",
             "Hindi"
         ])
-        
+        right_layout.addWidget(language_label)
+        right_layout.addWidget(self.language_combo)
+
+        # Engine Selection
+        engine_label = QLabel("Engine")
+
+        self.engine_combo = QComboBox()
+        self.engine_combo.addItems([
+            "XTTS v2",
+            "F5-TTS"
+        ])
+        right_layout.addWidget(engine_label)
+        right_layout.addWidget(self.engine_combo)
+
+        # Voice Mode Selection
+        voice_label = QLabel("Voice Mode")
+
         self.voice_combo = QComboBox()
         self.voice_combo.addItems([
             "Default Voice",
             "Voice Cloning"
         ])
-        
-        engine_layout.addWidget(engine_label)
-        engine_layout.addWidget(self.engine_combo)
+        right_layout.addWidget(voice_label)
+        right_layout.addWidget(self.voice_combo)
 
-        language_layout.addWidget(language_label)
-        language_layout.addWidget(self.language_combo)
-
-        voice_layout.addWidget(voice_label)
-        voice_layout.addWidget(self.voice_combo)
-
-        settings_layout.addLayout(engine_layout)
-        settings_layout.addLayout(language_layout)
-        settings_layout.addLayout(voice_layout)
-
-        settings_layout.addWidget(self.engine_combo)
-        settings_layout.addWidget(self.language_combo)
-
-        right_layout.addLayout(settings_layout)
-        
-        self.generate_button = QPushButton(
-            "🎙 GENERATE SPEECH"
+        # Reference Audio Upload     
+        self.upload_label = QLabel("Reference Audio")
+        self.upload_button = QPushButton(
+            "Select Audio File"
         )
-        left_layout.addWidget(self.generate_button)
+
+        self.voice_combo.currentTextChanged.connect(self.toggle_upload_section)        
+        right_layout.addWidget(self.upload_label)
+        right_layout.addWidget(self.upload_button)
+        self.upload_label.hide()
+        self.upload_button.hide()
+
+        # Output Format
+        output_label = QLabel("Output Format")
+
+        self.output_combo = QComboBox()
+        self.output_combo.addItems([
+            "MP3",
+            "WAV"
+        ])
+        right_layout.addWidget(output_label)
+        right_layout.addWidget(self.output_combo)
+
+        # Download Button
+        self.download_button = QPushButton(
+            "Download Output"
+        )
+        right_layout.addWidget(
+            self.download_button
+        )
+
+        right_layout.addSpacing(10)
+        right_layout.addStretch()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
