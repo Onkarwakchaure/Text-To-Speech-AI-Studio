@@ -1,5 +1,5 @@
 import sys
-
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import ( # type: ignore
     QApplication,
     QMainWindow,
@@ -9,19 +9,13 @@ from PySide6.QtWidgets import ( # type: ignore
     QTextEdit,
     QComboBox,
     QPushButton,
-    QLabel
+    QLabel,
+    QFileDialog,
+    QSlider
 )
 
 class MainWindow(QMainWindow):
-    
-    def toggle_upload_section(self):
-        if self.voice_combo.currentText() == "Voice Cloning":
-            self.upload_label.show()
-            self.upload_button.show()
-        else:
-            self.upload_label.hide()
-            self.upload_button.hide()   
-
+       
     def __init__(self):
         super().__init__()
         
@@ -47,11 +41,47 @@ class MainWindow(QMainWindow):
         self.text_input.setPlaceholderText("Type your text here...")
         left_layout.addWidget(self.text_input)
 
+         # Character Count
+        self.character_label = QLabel("0 characters")
+        left_layout.addWidget(self.character_label) 
+
+        self.text_input.textChanged.connect(
+        self.update_character_count
+        )
+
         # Generate Button
         self.generate_button = QPushButton(
             "🎙 GENERATE SPEECH"
         )
         left_layout.addWidget(self.generate_button)
+
+        # Audio Player 
+        audio_layout = QVBoxLayout()
+        controls_layout = QHBoxLayout()
+
+        self.play_button = QPushButton("▶")
+        self.pause_button = QPushButton("⏸")
+        self.stop_button = QPushButton("⏹")
+        self.audio_slider = QSlider(Qt.Horizontal)
+        self.duration_label = QLabel("00:00 / 00:00")
+        self.duration_label.setAlignment(Qt.AlignCenter)
+
+        self.play_button.setEnabled(False)
+        self.pause_button.setEnabled(False)
+        self.stop_button.setEnabled(False)
+        self.audio_slider.setEnabled(False)
+
+        controls_layout.addStretch()
+        controls_layout.addWidget(self.play_button)
+        controls_layout.addWidget(self.pause_button)
+        controls_layout.addWidget(self.stop_button)
+        controls_layout.addStretch()
+
+        audio_layout.addLayout(controls_layout)
+        audio_layout.addWidget(self.audio_slider)
+        audio_layout.addWidget(self.duration_label)
+
+        left_layout.addLayout(audio_layout)
 
         ## Settings Section
         settings_title = QLabel("Settings")
@@ -99,12 +129,21 @@ class MainWindow(QMainWindow):
         self.upload_button = QPushButton(
             "Select Audio File"
         )
+        self.selected_file_label = QLabel(
+            "No file selected"
+        )
 
         self.voice_combo.currentTextChanged.connect(self.toggle_upload_section)        
         right_layout.addWidget(self.upload_label)
         right_layout.addWidget(self.upload_button)
+        right_layout.addWidget(self.selected_file_label)
         self.upload_label.hide()
         self.upload_button.hide()
+        self.selected_file_label.hide()
+
+        self.upload_button.clicked.connect(
+            self.select_audio_file
+        )
 
         # Output Format
         output_label = QLabel("Output Format")
@@ -128,6 +167,52 @@ class MainWindow(QMainWindow):
         right_layout.addSpacing(10)
         right_layout.addStretch()
 
+
+    def toggle_upload_section(self):
+        if self.voice_combo.currentText() == "Voice Cloning":
+            self.upload_label.show()
+            self.upload_button.show()
+            self.selected_file_label.show()
+        else:
+            self.upload_label.hide()
+            self.upload_button.hide()
+            self.selected_file_label.hide()
+
+    def update_character_count(self):
+        text = self.text_input.toPlainText()
+
+        count = len(text)
+
+        self.character_label.setText(
+            f"{count} characters"
+        )
+    
+    def select_audio_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select Reference Audio",
+            "",
+            "Audio Files (*.wav *.mp3 *.flac)"
+        )
+
+        if file_path:
+            self.reference_audio_path = file_path
+
+            file_name = file_path.split("/")[-1]
+
+            self.upload_button.setText(
+                f"✓ {file_name}"
+            )
+
+            self.selected_file_label.setText(
+                f"Selected: {file_name}"
+            )
+    def enable_audio_controls(self):
+        self.play_button.setEnabled(True)
+        self.pause_button.setEnabled(True)
+        self.stop_button.setEnabled(True)
+        self.audio_slider.setEnabled(True)
+            
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
