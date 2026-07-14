@@ -1,6 +1,6 @@
 import sys
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import ( # type: ignore
+from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
     QWidget,
@@ -11,7 +11,8 @@ from PySide6.QtWidgets import ( # type: ignore
     QPushButton,
     QLabel,
     QFileDialog,
-    QSlider
+    QSlider,
+    QMessageBox
 )
 
 class MainWindow(QMainWindow):
@@ -53,6 +54,7 @@ class MainWindow(QMainWindow):
         self.generate_button = QPushButton(
             "🎙 GENERATE SPEECH"
         )
+        self.generate_button.clicked.connect(self.generate_speech)
         left_layout.addWidget(self.generate_button)
 
         # Audio Player 
@@ -129,6 +131,8 @@ class MainWindow(QMainWindow):
         self.selected_file_label = QLabel(
             "No file selected"
         )
+
+        self.reference_audio_path = None
 
         self.voice_combo.currentTextChanged.connect(self.toggle_upload_section)        
         right_layout.addWidget(self.upload_label)
@@ -225,6 +229,42 @@ class MainWindow(QMainWindow):
 
     def hide_download_button(self):
         self.download_button.hide()
+
+    def generate_speech(self):
+        
+        text = self.text_input.toPlainText()
+        if not text.strip():
+            QMessageBox.warning(
+                self,
+                "No Text Entered",
+                "Please enter some text to convert into speech."
+            )
+            return
+        
+        engine = self.engine_combo.currentText()
+        language = self.language_combo.currentText()
+        voice_mode = self.voice_combo.currentText()
+
+        if voice_mode == "Voice Cloning" and self.reference_audio_path is None:
+            QMessageBox.warning(
+                self,
+                "Missing Reference Audio",
+                "Voice cloning requires a reference audio file.\n\nPlease select one and try again."
+            )
+            return
+
+        output_format = self.output_combo.currentText()
+
+        print(f"Text: {text}")
+        print(f"Engine: {engine}")
+        print(f"Language: {language}")
+        print(f"Voice Mode: {voice_mode}")
+        print(f"Output Format: {output_format}")
+
+        if voice_mode == "Voice Cloning":
+            print(f"Reference Audio: {self.reference_audio_path}")
+        else:
+            print("Reference Audio: Not Required")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
