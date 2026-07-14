@@ -66,11 +66,6 @@ class MainWindow(QMainWindow):
         self.duration_label = QLabel("00:00 / 00:00")
         self.duration_label.setAlignment(Qt.AlignCenter)
 
-        self.play_button.setEnabled(False)
-        self.pause_button.setEnabled(False)
-        self.stop_button.setEnabled(False)
-        self.audio_slider.setEnabled(False)
-
         controls_layout.addStretch()
         controls_layout.addWidget(self.play_button)
         controls_layout.addWidget(self.pause_button)
@@ -82,6 +77,8 @@ class MainWindow(QMainWindow):
         audio_layout.addWidget(self.duration_label)
 
         left_layout.addLayout(audio_layout)
+
+        self.hide_audio_controls()
 
         ## Settings Section
         settings_title = QLabel("Settings")
@@ -155,6 +152,7 @@ class MainWindow(QMainWindow):
         ])
         right_layout.addWidget(output_label)
         right_layout.addWidget(self.output_combo)
+        right_layout.addStretch()
 
         # Download Button
         self.download_button = QPushButton(
@@ -165,8 +163,8 @@ class MainWindow(QMainWindow):
         )
 
         right_layout.addSpacing(10)
-        right_layout.addStretch()
 
+        self.hide_download_button()
 
     def toggle_upload_section(self):
         if self.voice_combo.currentText() == "Voice Cloning":
@@ -207,12 +205,27 @@ class MainWindow(QMainWindow):
             self.selected_file_label.setText(
                 f"Selected: {file_name}"
             )
-    def enable_audio_controls(self):
-        self.play_button.setEnabled(True)
-        self.pause_button.setEnabled(True)
-        self.stop_button.setEnabled(True)
-        self.audio_slider.setEnabled(True)
             
+    def show_audio_controls(self):
+        self.play_button.show()
+        self.pause_button.show()
+        self.stop_button.show()
+        self.audio_slider.show()
+        self.duration_label.show()
+
+    def hide_audio_controls(self):
+        self.play_button.hide()
+        self.pause_button.hide()
+        self.stop_button.hide()
+        self.audio_slider.hide()
+        self.duration_label.hide()
+
+    def show_download_button(self):
+        self.download_button.show()
+
+    def hide_download_button(self):
+        self.download_button.hide()
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
