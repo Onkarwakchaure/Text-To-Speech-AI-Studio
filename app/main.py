@@ -12,7 +12,8 @@ from PySide6.QtWidgets import (
     QLabel,
     QFileDialog,
     QSlider,
-    QMessageBox
+    QMessageBox,
+    QStatusBar
 )
 
 class MainWindow(QMainWindow):
@@ -22,11 +23,15 @@ class MainWindow(QMainWindow):
         
         ## Window Settings
         self.setWindowTitle("Text-To-Speech AI Studio")
-        self.resize(1200, 800)
-        self.setMinimumSize(900, 650)
+        self.resize(1200, 700)
+        self.setMinimumSize(1000, 500)
         
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+        self.set_status("Ready")
 
         main_layout = QHBoxLayout()
         central_widget.setLayout(main_layout)
@@ -265,6 +270,14 @@ class MainWindow(QMainWindow):
             print(f"Reference Audio: {self.reference_audio_path}")
         else:
             print("Reference Audio: Not Required")
+
+        self.set_status("Generating speech...")
+        self.set_status("Speech generated successfully.")
+
+    def set_status(self, message):
+            self.status_bar.showMessage(
+                f"Application Status : {message}"
+            )
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
