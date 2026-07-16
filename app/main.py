@@ -1,5 +1,6 @@
 import sys
-from PySide6.QtCore import Qt
+from time import sleep, time
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -14,6 +15,10 @@ from PySide6.QtWidgets import (
     QSlider,
     QMessageBox,
     QStatusBar
+)
+from PySide6.QtMultimedia import (
+    QMediaPlayer,
+    QAudioOutput
 )
 
 class MainWindow(QMainWindow):
@@ -151,6 +156,18 @@ class MainWindow(QMainWindow):
             self.select_audio_file
         )
 
+        self.player = QMediaPlayer()
+        self.audio_output = QAudioOutput()
+
+        self.player.setAudioOutput(self.audio_output)
+
+        self.play_button.clicked.connect(self.play_audio)
+        self.pause_button.clicked.connect(self.pause_audio)
+        self.stop_button.clicked.connect(self.stop_audio)
+        self.player.durationChanged.connect(self.update_duration)
+        self.player.positionChanged.connect(self.update_position)
+        self.audio_slider.sliderMoved.connect(self.seek_audio)
+
         # Output Format
         output_label = QLabel("Output Format")
 
@@ -164,15 +181,9 @@ class MainWindow(QMainWindow):
         right_layout.addStretch()
 
         # Download Button
-        self.download_button = QPushButton(
-            "Download Output"
-        )
-        right_layout.addWidget(
-            self.download_button
-        )
-
+        self.download_button = QPushButton("Download Output")
+        right_layout.addWidget(self.download_button)
         right_layout.addSpacing(10)
-
         self.hide_download_button()
 
     def toggle_upload_section(self):
@@ -187,12 +198,8 @@ class MainWindow(QMainWindow):
 
     def update_character_count(self):
         text = self.text_input.toPlainText()
-
         count = len(text)
-
-        self.character_label.setText(
-            f"{count} characters"
-        )
+        self.character_label.setText(f"{count} characters")
     
     def select_audio_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -204,16 +211,9 @@ class MainWindow(QMainWindow):
 
         if file_path:
             self.reference_audio_path = file_path
-
             file_name = file_path.split("/")[-1]
-
-            self.upload_button.setText(
-                f"✓ {file_name}"
-            )
-
-            self.selected_file_label.setText(
-                f"Selected: {file_name}"
-            )
+            self.upload_button.setText(f"✓ {file_name}")
+            self.selected_file_label.setText(f"Selected: {file_name}")
             
     def show_audio_controls(self):
         self.play_button.show()
@@ -272,12 +272,45 @@ class MainWindow(QMainWindow):
             print("Reference Audio: Not Required")
 
         self.set_status("Generating speech...")
+        QApplication.processEvents()
+        sleep(2)
+
+        audio_path = "output\Tay sample voice mp3.mp3"
+
+        self.load_audio(audio_path)
+        self.show_audio_controls()
+        self.show_download_button()
         self.set_status("Speech generated successfully.")
 
     def set_status(self, message):
-            self.status_bar.showMessage(
-                f"Application Status : {message}"
-            )
+        self.status_bar.showMessage(
+            f"Application Status : {message}"
+        )
+
+    def play_audio(self):
+        self.player.play()
+        self.set_status("Playing audio...")
+
+    def pause_audio(self):
+        self.player.pause()
+        self.set_status("Audio paused.")
+
+    def stop_audio(self):
+        self.player.stop()
+        self.set_status("Audio stopped.")
+
+    def load_audio(self, audio_path):
+        self.player.setSource(QUrl.fromLocalFile(audio_path))
+        self.set_status("Audio loaded successfully.")
+
+    def update_duration(self, duration):
+        self.audio_slider.setMaximum(duration)
+
+    def update_position(self, position):
+        self.audio_slider.setValue(position)
+
+    def seek_audio(self, position):
+        self.player.setPosition(position)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
