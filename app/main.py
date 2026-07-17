@@ -1,6 +1,6 @@
 import sys
 from time import sleep, time
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, QTime
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -14,12 +14,11 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QSlider,
     QMessageBox,
-    QStatusBar
-)
+    QStatusBar)
 from PySide6.QtMultimedia import (
     QMediaPlayer,
-    QAudioOutput
-)
+    QAudioOutput)
+from ui.clickable_slider import ClickableSlider
 
 class MainWindow(QMainWindow):
        
@@ -74,7 +73,7 @@ class MainWindow(QMainWindow):
         self.play_button = QPushButton("▶")
         self.pause_button = QPushButton("⏸")
         self.stop_button = QPushButton("⏹")
-        self.audio_slider = QSlider(Qt.Horizontal)
+        self.audio_slider = ClickableSlider(Qt.Horizontal)
         self.duration_label = QLabel("00:00 / 00:00")
         self.duration_label.setAlignment(Qt.AlignCenter)
 
@@ -306,8 +305,35 @@ class MainWindow(QMainWindow):
     def update_duration(self, duration):
         self.audio_slider.setMaximum(duration)
 
+        total_duration = QTime(
+            0,
+            duration // 60000,
+            (duration // 1000) % 60
+        )
+
+        self.duration_label.setText(
+            f"00:00 / {total_duration.toString('mm:ss')}"
+        )
+
     def update_position(self, position):
         self.audio_slider.setValue(position)
+
+        current_time = QTime(
+            0,
+            position // 60000,
+            (position // 1000) % 60
+        )
+
+        total_duration = QTime(
+            0,
+            self.player.duration() // 60000,
+            (self.player.duration() // 1000) % 60
+        )
+
+        self.duration_label.setText(
+            f"{current_time.toString('mm:ss')} / "
+            f"{total_duration.toString('mm:ss')}"
+        )
 
     def seek_audio(self, position):
         self.player.setPosition(position)
