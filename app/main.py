@@ -19,6 +19,7 @@ from PySide6.QtMultimedia import (
     QMediaPlayer,
     QAudioOutput)
 from ui.clickable_slider import ClickableSlider
+from tts.xtts_engine import generate_xtts
 
 class MainWindow(QMainWindow):
        
@@ -247,6 +248,13 @@ class MainWindow(QMainWindow):
         
         engine = self.engine_combo.currentText()
         language = self.language_combo.currentText()
+        language_map = {
+            "English": "en",
+            "Hindi": "hi"
+        }
+
+        xtts_language = language_map[language]
+
         voice_mode = self.voice_combo.currentText()
 
         if voice_mode == "Voice Cloning" and self.reference_audio_path is None:
@@ -274,8 +282,22 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
         sleep(2)
 
-        audio_path = "output\Tay sample voice mp3.mp3"
+        audio_path = "output/generated_audio.wav"
 
+        if voice_mode == "Voice Cloning":
+            generate_xtts(
+                text=text,
+                language=xtts_language,
+                output_path=audio_path,
+                speaker_wav=self.reference_audio_path
+            )
+        else:
+            generate_xtts(
+                text=text,
+                language=xtts_language,
+                output_path=audio_path
+            )
+        
         self.load_audio(audio_path)
         self.show_audio_controls()
         self.show_download_button()
