@@ -1,6 +1,6 @@
 import sys
-from time import sleep, time
-from PySide6.QtCore import Qt, QUrl, QTime
+from time import sleep
+from PySide6.QtCore import Qt, QUrl, QTime, QTimer
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -12,12 +12,12 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
     QFileDialog,
-    QSlider,
     QMessageBox,
     QStatusBar)
 from PySide6.QtMultimedia import (
     QMediaPlayer,
     QAudioOutput)
+import shutil
 from ui.clickable_slider import ClickableSlider
 from tts.xtts_engine import generate_xtts
 
@@ -166,6 +166,7 @@ class MainWindow(QMainWindow):
         self.stop_button.clicked.connect(self.stop_audio)
         self.player.durationChanged.connect(self.update_duration)
         self.player.positionChanged.connect(self.update_position)
+        self.player.playbackStateChanged.connect(self.handle_playback_state)
         self.audio_slider.sliderMoved.connect(self.seek_audio)
 
         # Output Format
@@ -185,6 +186,9 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self.download_button)
         right_layout.addSpacing(10)
         self.hide_download_button()
+
+        self.generated_audio_path = None
+        self.download_button.clicked.connect(self.download_audio)
 
     def toggle_upload_section(self):
         if self.voice_combo.currentText() == "Voice Cloning":
@@ -310,15 +314,12 @@ class MainWindow(QMainWindow):
 
     def play_audio(self):
         self.player.play()
-        self.set_status("Playing audio...")
 
     def pause_audio(self):
         self.player.pause()
-        self.set_status("Audio paused.")
 
     def stop_audio(self):
         self.player.stop()
-        self.set_status("Audio stopped.")
 
     def load_audio(self, audio_path):
         self.player.setSource(QUrl.fromLocalFile(audio_path))
@@ -359,7 +360,33 @@ class MainWindow(QMainWindow):
 
     def seek_audio(self, position):
         self.player.setPosition(position)
+    
+    def handle_playback_state(self, state):
 
+        if state == QMediaPlayer.PlayingState:
+            self.set_status("Playing audio...")
+
+        elif state == QMediaPlayer.PausedState:
+            self.set_status("Audio paused.")
+            self.reset_status()
+
+        elif state == QMediaPlayer.StoppedState:
+
+            if self.player.position() == self.player.duration():
+                self.set_status("Playback finished.")
+                self.set_status("Audio stopped.")
+                self.reset_status()
+
+    def reset_status(self, delay=3000):
+
+        QTimer.singleShot(
+            delay,
+            lambda: self.set_status("Ready")
+        )
+
+    def download_audio(self):
+        print(self.generated_audio_path)
+    
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
