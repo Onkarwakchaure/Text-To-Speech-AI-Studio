@@ -302,6 +302,7 @@ class MainWindow(QMainWindow):
                 output_path=audio_path
             )
         
+        self.generated_audio_path = audio_path
         self.load_audio(audio_path)
         self.show_audio_controls()
         self.show_download_button()
@@ -385,8 +386,24 @@ class MainWindow(QMainWindow):
         )
 
     def download_audio(self):
-        print(self.generated_audio_path)
-    
+
+        if self.generated_audio_path is None:
+                QMessageBox.warning(
+                    self,
+                    "No Audio Available",
+                    "Please generate speech before downloading."
+                )
+                return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Audio As",
+            "generated_audio.wav",
+            "WAV Files (*.wav)"
+        )
+
+        print(file_path)
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
