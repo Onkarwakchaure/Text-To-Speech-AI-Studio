@@ -401,8 +401,17 @@ class MainWindow(QMainWindow):
             "generated_audio.wav",
             "WAV Files (*.wav)"
         )
+        
+        if not file_path:
+            return
 
-        print(file_path)
+        shutil.copy(
+            self.generated_audio_path,
+            file_path
+        )
+
+        self.set_status("Audio saved successfully.")
+        self.reset_status()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
