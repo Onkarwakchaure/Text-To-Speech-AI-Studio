@@ -1,6 +1,6 @@
 import sys
 from time import sleep
-from PySide6.QtCore import Qt, QUrl, QTime, QTimer
+from PySide6.QtCore import Qt, QUrl, QTime, QTimer, QThread
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -20,6 +20,7 @@ from PySide6.QtMultimedia import (
 import shutil
 from ui.clickable_slider import ClickableSlider
 from tts.xtts_engine import generate_xtts
+from workers.tts_worker import TTSWorker
 
 class MainWindow(QMainWindow):
        
@@ -288,7 +289,7 @@ class MainWindow(QMainWindow):
 
         audio_path = "output/generated_audio.wav"
 
-        if voice_mode == "Voice Cloning":
+        ''' if voice_mode == "Voice Cloning":
             generate_xtts(
                 text=text,
                 language=xtts_language,
@@ -300,14 +301,53 @@ class MainWindow(QMainWindow):
                 text=text,
                 language=xtts_language,
                 output_path=audio_path
-            )
+            ) '''
         
+        self.thread = QThread()
+        self.worker = TTSWorker(
+            text=text,
+            language=xtts_language,
+            voice_mode=voice_mode,
+            output_path=audio_path,
+            speaker_wav=self.reference_audio_path
+        )
+        self.worker.moveToThread(self.thread)
+        # Thread starts the worker
+        self.thread.started.connect(self.worker.run)
+
+        # Worker signals
+        self.worker.finished.connect(self.on_generation_finished)
+        self.worker.error.connect(self.on_generation_error)
+
+        # Cleanup
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.generate_button.setEnabled(False)
+        self.thread.start()
+
+    def on_generation_finished(self, audio_path):
+
         self.generated_audio_path = audio_path
         self.load_audio(audio_path)
         self.show_audio_controls()
         self.show_download_button()
         self.set_status("Speech generated successfully.")
+        self.reset_status()
+        self.generate_button.setEnabled(True)
 
+    def on_generation_error(self, message):
+        QMessageBox.critical(
+            self,
+            "Generation Error",
+            message
+        )
+
+        self.set_status("Generation failed.")
+        self.reset_status()
+        self.generate_button.setEnabled(True)
+            
     def set_status(self, message):
         self.status_bar.showMessage(
             f"Application Status : {message}"
@@ -401,7 +441,7 @@ class MainWindow(QMainWindow):
             "generated_audio.wav",
             "WAV Files (*.wav)"
         )
-        
+
         if not file_path:
             return
 
