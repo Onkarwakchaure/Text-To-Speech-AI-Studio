@@ -13,8 +13,10 @@ class TTSWorker(QObject):
         language,
         voice_mode,
         output_path,
-        speaker_wav=None
+        speaker_wav=None,
+        speaker=None
     ):
+        
         super().__init__()
 
         self.text = text
@@ -22,6 +24,7 @@ class TTSWorker(QObject):
         self.voice_mode = voice_mode
         self.output_path = output_path
         self.speaker_wav = speaker_wav
+        self.speaker = speaker
 
     def run(self):
         try:
@@ -38,7 +41,8 @@ class TTSWorker(QObject):
                 generate_xtts(
                     text=self.text,
                     language=self.language,
-                    output_path=self.output_path
+                    output_path=self.output_path,
+                    speaker=self.speaker
                 )
 
             self.finished.emit(self.output_path)

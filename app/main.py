@@ -19,7 +19,7 @@ from PySide6.QtMultimedia import (
     QAudioOutput)
 import shutil
 from ui.clickable_slider import ClickableSlider
-from tts.xtts_engine import generate_xtts
+from tts.xtts_engine import generate_xtts, get_available_speakers
 from workers.tts_worker import TTSWorker
 
 class MainWindow(QMainWindow):
@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
 
         self.hide_audio_controls()
 
-        ## Settings Section
+        ''' Settings Section '''
         settings_title = QLabel("Settings")
         right_layout.addWidget(settings_title)
         settings_title.setStyleSheet(
@@ -133,6 +133,15 @@ class MainWindow(QMainWindow):
         ])
         right_layout.addWidget(voice_label)
         right_layout.addWidget(self.voice_combo)
+
+        # Default Voice Selection
+
+        self.default_voice_label = QLabel("Voice")
+        self.default_voice_combo = QComboBox()
+        self.default_voice_combo.addItems(get_available_speakers())
+        
+        right_layout.addWidget(self.default_voice_label)
+        right_layout.addWidget(self.default_voice_combo)
 
         # Reference Audio Upload     
         self.upload_label = QLabel("Reference Audio")
@@ -262,6 +271,8 @@ class MainWindow(QMainWindow):
 
         voice_mode = self.voice_combo.currentText()
 
+        selected_speaker = self.default_voice_combo.currentText()
+
         if voice_mode == "Voice Cloning" and self.reference_audio_path is None:
             QMessageBox.warning(
                 self,
@@ -309,7 +320,8 @@ class MainWindow(QMainWindow):
             language=xtts_language,
             voice_mode=voice_mode,
             output_path=audio_path,
-            speaker_wav=self.reference_audio_path
+            speaker_wav=self.reference_audio_path,
+            speaker=selected_speaker
         )
         self.worker.moveToThread(self.thread)
         # Thread starts the worker

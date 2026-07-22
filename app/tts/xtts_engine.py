@@ -9,6 +9,7 @@ def generate_xtts(
     text,
     language,
     output_path,
+    speaker="Ana Florence",
     speaker_wav=None
 ):
 
@@ -24,8 +25,11 @@ def generate_xtts(
         tts_model.tts_to_file(
             text=text,
             file_path=output_path,
-            speaker="Ana Florence",
+            speaker=speaker,
             language=language
         )
 
     return output_path
+
+def get_available_speakers():
+    return list(tts_model.synthesizer.tts_model.speaker_manager.name_to_id)
