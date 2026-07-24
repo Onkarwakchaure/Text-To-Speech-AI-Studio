@@ -139,9 +139,12 @@ class MainWindow(QMainWindow):
         self.default_voice_label = QLabel("Voice")
         self.default_voice_combo = QComboBox()
         self.default_voice_combo.addItems(get_available_speakers())
-        
+
+        self.voice_combo.currentTextChanged.connect(self.toggle_sections)
         right_layout.addWidget(self.default_voice_label)
         right_layout.addWidget(self.default_voice_combo)
+        self.default_voice_label.hide()
+        self.default_voice_combo.hide()
 
         # Reference Audio Upload     
         self.upload_label = QLabel("Reference Audio")
@@ -154,7 +157,7 @@ class MainWindow(QMainWindow):
 
         self.reference_audio_path = None
 
-        self.voice_combo.currentTextChanged.connect(self.toggle_upload_section)        
+        self.voice_combo.currentTextChanged.connect(self.toggle_sections)        
         right_layout.addWidget(self.upload_label)
         right_layout.addWidget(self.upload_button)
         right_layout.addWidget(self.selected_file_label)
@@ -179,6 +182,8 @@ class MainWindow(QMainWindow):
         self.player.playbackStateChanged.connect(self.handle_playback_state)
         self.audio_slider.sliderMoved.connect(self.seek_audio)
 
+        self.toggle_sections()
+
         # Output Format
         output_label = QLabel("Output Format")
 
@@ -200,7 +205,7 @@ class MainWindow(QMainWindow):
         self.generated_audio_path = None
         self.download_button.clicked.connect(self.download_audio)
 
-    def toggle_upload_section(self):
+    def toggle_sections(self):
         if self.voice_combo.currentText() == "Voice Cloning":
             self.upload_label.show()
             self.upload_button.show()
@@ -209,6 +214,13 @@ class MainWindow(QMainWindow):
             self.upload_label.hide()
             self.upload_button.hide()
             self.selected_file_label.hide()
+
+        if self.voice_combo.currentText() == "Default Voice":
+            self.default_voice_label.show()
+            self.default_voice_combo.show()
+        else:
+            self.default_voice_label.hide()
+            self.default_voice_combo.hide()
 
     def update_character_count(self):
         text = self.text_input.toPlainText()

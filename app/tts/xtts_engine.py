@@ -11,7 +11,9 @@ def generate_xtts(
     output_path,
     speaker="Ana Florence",
     speaker_wav=None
-):
+    ):
+
+    print("Speaker WAV:", speaker_wav)
 
     if speaker_wav:
         tts_model.tts_to_file(
