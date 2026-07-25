@@ -310,7 +310,7 @@ class MainWindow(QMainWindow):
         QApplication.processEvents()
         sleep(2)
 
-        audio_path = "output/generated_audio.wav"
+        audio_path = "output/generated_audio_test1.wav"
 
         ''' if voice_mode == "Voice Cloning":
             generate_xtts(
@@ -387,10 +387,20 @@ class MainWindow(QMainWindow):
         self.player.stop()
 
     def load_audio(self, audio_path):
+        self.player.stop()
+
+        # Clear the previous media source
+        self.player.setSource(QUrl())
+
+        # Load the new file
         self.player.setSource(QUrl.fromLocalFile(audio_path))
+
+        self.audio_slider.setValue(0)
         self.set_status("Audio loaded successfully.")
 
     def update_duration(self, duration):
+        print("DurationChanged:", duration)
+        
         self.audio_slider.setMaximum(duration)
 
         total_duration = QTime(
