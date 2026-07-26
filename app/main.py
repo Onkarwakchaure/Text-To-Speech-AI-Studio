@@ -190,7 +190,9 @@ class MainWindow(QMainWindow):
         self.output_combo = QComboBox()
         self.output_combo.addItems([
             "MP3",
-            "WAV"
+            "WAV",
+            "FLAC",
+            "OGG"
         ])
         right_layout.addWidget(output_label)
         right_layout.addWidget(self.output_combo)
@@ -399,8 +401,7 @@ class MainWindow(QMainWindow):
         self.set_status("Audio loaded successfully.")
 
     def update_duration(self, duration):
-        print("DurationChanged:", duration)
-        
+                
         self.audio_slider.setMaximum(duration)
 
         total_duration = QTime(
@@ -469,11 +470,20 @@ class MainWindow(QMainWindow):
                 )
                 return
 
+        selected_format = self.output_combo.currentText().lower()
+
+        default_name = f"generated_audio.{selected_format}"
+
+        file_filter = (
+            f"{selected_format.upper()} Files "
+            f"(*.{selected_format})"
+        )
+
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Audio As",
-            "generated_audio.wav",
-            "WAV Files (*.wav)"
+            default_name,
+            file_filter
         )
 
         if not file_path:
