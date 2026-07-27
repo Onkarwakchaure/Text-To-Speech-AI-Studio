@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtMultimedia import (
     QMediaPlayer,
     QAudioOutput)
+from pydub import AudioSegment
 import shutil
 from ui.clickable_slider import ClickableSlider
 from tts.xtts_engine import generate_xtts, get_available_speakers
@@ -489,9 +490,11 @@ class MainWindow(QMainWindow):
         if not file_path:
             return
 
-        shutil.copy(
-            self.generated_audio_path,
-            file_path
+        audio = AudioSegment.from_file(self.generated_audio_path)
+
+        audio.export(
+            file_path,
+            format=selected_format
         )
 
         self.set_status("Audio saved successfully.")
