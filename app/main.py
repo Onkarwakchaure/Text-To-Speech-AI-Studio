@@ -461,6 +461,28 @@ class MainWindow(QMainWindow):
             lambda: self.set_status("Ready")
         )
 
+    def export_audio(
+        self,
+        output_path,
+        output_format
+    ):
+        try:
+            audio = AudioSegment.from_file(
+                self.generated_audio_path
+            )
+
+            audio.export(
+                output_path,
+                format=output_format
+            )
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Export Error",
+                f"Failed to export audio.\n\n{e}"
+            )
+        
     def download_audio(self):
 
         if self.generated_audio_path is None:
@@ -490,13 +512,9 @@ class MainWindow(QMainWindow):
         if not file_path:
             return
 
-        audio = AudioSegment.from_file(self.generated_audio_path)
-
-        audio.export(
+        self.export_audio(
             file_path,
-            format=selected_format
-        )
-
+            selected_format)
         self.set_status("Audio saved successfully.")
         self.reset_status()
 
