@@ -1,12 +1,16 @@
-# Virtual Environment
+# Virtual Environments
 .venv/
+F5_TTS/.F5_venv/
 
-# Python cache
+# Python Cache
 __pycache__/
 *.pyc
 
 # Output files
 output/
+
+# F5-TTS temporary testing folder
+F5_TTS/
 
 # Environment variables
 .env

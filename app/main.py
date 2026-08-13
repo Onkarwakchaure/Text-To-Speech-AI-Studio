@@ -332,6 +332,7 @@ class MainWindow(QMainWindow):
         self.thread = QThread()
         self.worker = TTSWorker(
             text=text,
+            engine=engine,
             language=xtts_language,
             voice_mode=voice_mode,
             output_path=audio_path,
