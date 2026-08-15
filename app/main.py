@@ -1,5 +1,4 @@
 import sys
-from time import sleep
 from PySide6.QtCore import Qt, QUrl, QTime, QTimer, QThread
 from PySide6.QtWidgets import (
     QApplication,
@@ -18,7 +17,6 @@ from PySide6.QtMultimedia import (
     QMediaPlayer,
     QAudioOutput)
 from pydub import AudioSegment
-import shutil
 from ui.clickable_slider import ClickableSlider
 from tts.xtts_engine import generate_xtts, get_available_speakers
 from workers.tts_worker import TTSWorker
@@ -102,37 +100,37 @@ class MainWindow(QMainWindow):
             "font-weight: bold;"
         )
 
-        # Language Selection
-        language_label = QLabel("Language")
-
-        self.language_combo = QComboBox()
-        self.language_combo.addItems([
-            "English",
-            "Hindi"
-        ])
-        right_layout.addWidget(language_label)
-        right_layout.addWidget(self.language_combo)
-
         # Engine Selection
-        engine_label = QLabel("Engine")
+        self.engine_label = QLabel("Engine")
 
         self.engine_combo = QComboBox()
         self.engine_combo.addItems([
             "XTTS v2",
             "F5-TTS"
         ])
-        right_layout.addWidget(engine_label)
+        right_layout.addWidget(self.engine_label)
         right_layout.addWidget(self.engine_combo)
 
+        # Language Selection
+        self.language_label = QLabel("Language")
+
+        self.language_combo = QComboBox()
+        self.language_combo.addItems([
+            "English",
+            "Hindi"
+        ])
+        right_layout.addWidget(self.language_label)
+        right_layout.addWidget(self.language_combo)
+
         # Voice Mode Selection
-        voice_label = QLabel("Voice Mode")
+        self.voice_label = QLabel("Voice Mode")
 
         self.voice_combo = QComboBox()
         self.voice_combo.addItems([
             "Default Voice",
             "Voice Cloning"
         ])
-        right_layout.addWidget(voice_label)
+        right_layout.addWidget(self.voice_label)
         right_layout.addWidget(self.voice_combo)
 
         # Default Voice Selection
@@ -141,7 +139,6 @@ class MainWindow(QMainWindow):
         self.default_voice_combo = QComboBox()
         self.default_voice_combo.addItems(get_available_speakers())
 
-        self.voice_combo.currentTextChanged.connect(self.toggle_sections)
         right_layout.addWidget(self.default_voice_label)
         right_layout.addWidget(self.default_voice_combo)
         self.default_voice_label.hide()
@@ -158,7 +155,6 @@ class MainWindow(QMainWindow):
 
         self.reference_audio_path = None
 
-        self.voice_combo.currentTextChanged.connect(self.toggle_sections)        
         right_layout.addWidget(self.upload_label)
         right_layout.addWidget(self.upload_button)
         right_layout.addWidget(self.selected_file_label)
@@ -186,7 +182,7 @@ class MainWindow(QMainWindow):
         self.toggle_sections()
 
         # Output Format
-        output_label = QLabel("Output Format")
+        self.output_label = QLabel("Output Format")
 
         self.output_combo = QComboBox()
         self.output_combo.addItems([
@@ -195,7 +191,7 @@ class MainWindow(QMainWindow):
             "FLAC",
             "OGG"
         ])
-        right_layout.addWidget(output_label)
+        right_layout.addWidget(self.output_label)
         right_layout.addWidget(self.output_combo)
         right_layout.addStretch()
 
@@ -208,28 +204,81 @@ class MainWindow(QMainWindow):
         self.generated_audio_path = None
         self.download_button.clicked.connect(self.download_audio)
 
-    def toggle_sections(self):
-        if self.voice_combo.currentText() == "Voice Cloning":
-            self.upload_label.show()
-            self.upload_button.show()
-            self.selected_file_label.show()
-        else:
-            self.upload_label.hide()
-            self.upload_button.hide()
-            self.selected_file_label.hide()
+        # UI Connections
+        self.engine_combo.currentTextChanged.connect(
+            self.toggle_sections
+        )
 
-        if self.voice_combo.currentText() == "Default Voice":
-            self.default_voice_label.show()
-            self.default_voice_combo.show()
-        else:
+        self.voice_combo.currentTextChanged.connect(
+            self.toggle_sections
+        )
+
+        self.upload_button.clicked.connect(
+            self.select_audio_file
+        )
+
+
+    ''' Methods for MainWindow class '''
+
+    def toggle_sections(self):
+
+        engine = self.engine_combo.currentText()
+        voice_mode = self.voice_combo.currentText()
+
+        # F5-TTS
+        if engine == "F5-TTS":
+
+            self.language_label.hide()
+            self.language_combo.hide()
+
             self.default_voice_label.hide()
             self.default_voice_combo.hide()
 
+            self.upload_label.show()
+            self.upload_button.show()
+            self.selected_file_label.show()
+
+            # F5 requires reference audio,
+            # so force Voice Cloning mode.
+            if voice_mode != "Voice Cloning":
+
+                self.voice_combo.blockSignals(True)
+
+                self.voice_combo.setCurrentText(
+                    "Voice Cloning"
+                )
+
+                self.voice_combo.blockSignals(False)
+
+        # XTTS v2
+        else:
+
+            self.language_label.show()
+            self.language_combo.show()
+
+            if voice_mode == "Voice Cloning":
+
+                self.upload_label.show()
+                self.upload_button.show()
+                self.selected_file_label.show()
+
+                self.default_voice_label.hide()
+                self.default_voice_combo.hide()
+
+            else:
+
+                self.upload_label.hide()
+                self.upload_button.hide()
+                self.selected_file_label.hide()
+
+                self.default_voice_label.show()
+                self.default_voice_combo.show()
+                
     def update_character_count(self):
         text = self.text_input.toPlainText()
         count = len(text)
         self.character_label.setText(f"{count} characters")
-    
+
     def select_audio_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -311,23 +360,8 @@ class MainWindow(QMainWindow):
 
         self.set_status("Generating speech...")
         QApplication.processEvents()
-        sleep(2)
 
         audio_path = "output/generated_audio_test1.wav"
-
-        ''' if voice_mode == "Voice Cloning":
-            generate_xtts(
-                text=text,
-                language=xtts_language,
-                output_path=audio_path,
-                speaker_wav=self.reference_audio_path
-            )
-        else:
-            generate_xtts(
-                text=text,
-                language=xtts_language,
-                output_path=audio_path
-            ) '''
         
         self.thread = QThread()
         self.worker = TTSWorker(
