@@ -17,7 +17,8 @@ class TTSWorker(QObject):
         voice_mode,
         output_path,
         speaker_wav=None,
-        speaker=None
+        speaker=None,
+        speed=0.9
     ):
         
         super().__init__()
@@ -29,6 +30,7 @@ class TTSWorker(QObject):
         self.output_path = output_path
         self.speaker_wav = speaker_wav
         self.speaker = speaker
+        self.speed = speed
 
     def run(self):
 
@@ -63,7 +65,8 @@ class TTSWorker(QObject):
                 generate_f5tts(
                     text=self.text,
                     reference_audio=self.speaker_wav,
-                    output_path=self.output_path
+                    output_path=self.output_path,
+                    speed=self.speed
                 )
 
             # Unknown engine

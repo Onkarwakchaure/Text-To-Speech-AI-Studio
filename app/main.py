@@ -1,4 +1,4 @@
-import sys
+import os, sys
 from PySide6.QtCore import Qt, QUrl, QTime, QTimer, QThread
 from PySide6.QtWidgets import (
     QApplication,
@@ -12,7 +12,9 @@ from PySide6.QtWidgets import (
     QLabel,
     QFileDialog,
     QMessageBox,
-    QStatusBar)
+    QStatusBar,
+    QDoubleSpinBox
+    )
 from PySide6.QtMultimedia import (
     QMediaPlayer,
     QAudioOutput)
@@ -20,6 +22,7 @@ from pydub import AudioSegment
 from ui.clickable_slider import ClickableSlider
 from tts.xtts_engine import generate_xtts, get_available_speakers
 from workers.tts_worker import TTSWorker
+from datetime import datetime
 
 class MainWindow(QMainWindow):
        
@@ -179,8 +182,6 @@ class MainWindow(QMainWindow):
         self.player.playbackStateChanged.connect(self.handle_playback_state)
         self.audio_slider.sliderMoved.connect(self.seek_audio)
 
-        self.toggle_sections()
-
         # Output Format
         self.output_label = QLabel("Output Format")
 
@@ -193,9 +194,25 @@ class MainWindow(QMainWindow):
         ])
         right_layout.addWidget(self.output_label)
         right_layout.addWidget(self.output_combo)
-        right_layout.addStretch()
+
+        ''' F5-TTS Settings '''
+
+        self.f5_speed_label = QLabel("Speed")
+
+        self.f5_speed_spinbox = QDoubleSpinBox()
+        self.f5_speed_spinbox.setRange(0.5, 2.0)
+        self.f5_speed_spinbox.setSingleStep(0.1)
+        self.f5_speed_spinbox.setValue(1.0)
+
+        right_layout.addWidget(self.f5_speed_label)
+        right_layout.addWidget(self.f5_speed_spinbox)
+
+        self.f5_speed_label.hide()
+        self.f5_speed_spinbox.hide()
 
         # Download Button
+        right_layout.addStretch()
+
         self.download_button = QPushButton("Download Output")
         right_layout.addWidget(self.download_button)
         right_layout.addSpacing(10)
@@ -217,6 +234,9 @@ class MainWindow(QMainWindow):
             self.select_audio_file
         )
 
+        self.toggle_sections()
+
+
 
     ''' Methods for MainWindow class '''
 
@@ -224,6 +244,13 @@ class MainWindow(QMainWindow):
 
         engine = self.engine_combo.currentText()
         voice_mode = self.voice_combo.currentText()
+
+        if engine == "F5-TTS":
+            self.f5_speed_label.show()
+            self.f5_speed_spinbox.show()
+        else:
+            self.f5_speed_label.hide()
+            self.f5_speed_spinbox.hide()
 
         # F5-TTS
         if engine == "F5-TTS":
@@ -292,7 +319,7 @@ class MainWindow(QMainWindow):
             file_name = file_path.split("/")[-1]
             self.upload_button.setText(f"✓ {file_name}")
             self.selected_file_label.setText(f"Selected: {file_name}")
-            
+
     def show_audio_controls(self):
         self.play_button.show()
         self.pause_button.show()
@@ -361,8 +388,13 @@ class MainWindow(QMainWindow):
         self.set_status("Generating speech...")
         QApplication.processEvents()
 
-        audio_path = "output/generated_audio_test1.wav"
-        
+        os.makedirs("output", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+
+        audio_path = (
+            f"output/generated_{timestamp}.wav"
+        )
+
         self.thread = QThread()
         self.worker = TTSWorker(
             text=text,
@@ -371,7 +403,8 @@ class MainWindow(QMainWindow):
             voice_mode=voice_mode,
             output_path=audio_path,
             speaker_wav=self.reference_audio_path,
-            speaker=selected_speaker
+            speaker=selected_speaker,
+            speed=self.f5_speed_spinbox.value()
         )
         self.worker.moveToThread(self.thread)
         # Thread starts the worker
