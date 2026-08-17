@@ -13,7 +13,9 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QStatusBar,
-    QDoubleSpinBox
+    QDoubleSpinBox,
+    QGroupBox,
+    QLineEdit
     )
 from PySide6.QtMultimedia import (
     QMediaPlayer,
@@ -197,6 +199,18 @@ class MainWindow(QMainWindow):
 
         ''' F5-TTS Settings '''
 
+        self.advanced_settings = QGroupBox("Advanced Settings")
+        self.advanced_settings.setCheckable(True)
+        self.advanced_settings.setChecked(False)
+
+        advanced_layout = QVBoxLayout()
+
+        self.advanced_settings.toggled.connect(
+            self.toggle_advanced_settings
+        )
+
+        # Speed Controrl
+
         self.f5_speed_label = QLabel("Speed")
 
         self.f5_speed_spinbox = QDoubleSpinBox()
@@ -209,6 +223,21 @@ class MainWindow(QMainWindow):
 
         self.f5_speed_label.hide()
         self.f5_speed_spinbox.hide()
+
+        # F5 Reference Text
+        self.f5_reference_text_label = QLabel("Reference Text")
+
+        self.f5_reference_text = QLineEdit()
+        self.f5_reference_text.setPlaceholderText(
+            "Optional — enter text spoken in reference audio..."
+        )
+
+        advanced_layout.addWidget(self.f5_reference_text_label)
+        advanced_layout.addWidget(self.f5_reference_text)
+
+        self.advanced_settings.setLayout(advanced_layout)
+
+        right_layout.addWidget(self.advanced_settings)
 
         # Download Button
         right_layout.addStretch()
@@ -244,6 +273,11 @@ class MainWindow(QMainWindow):
 
         engine = self.engine_combo.currentText()
         voice_mode = self.voice_combo.currentText()
+
+        if engine == "F5-TTS":
+            self.advanced_settings.show()
+        else:
+            self.advanced_settings.hide()
 
         if engine == "F5-TTS":
             self.f5_speed_label.show()
@@ -373,12 +407,14 @@ class MainWindow(QMainWindow):
             return
 
         output_format = self.output_combo.currentText()
+        f5_speed = self.f5_speed_spinbox.value()
 
         print(f"Text: {text}")
         print(f"Engine: {engine}")
         print(f"Language: {language}")
         print(f"Voice Mode: {voice_mode}")
         print(f"Output Format: {output_format}")
+        print(f"F5 Speed: {f5_speed}")
 
         if voice_mode == "Voice Cloning":
             print(f"Reference Audio: {self.reference_audio_path}")
@@ -421,6 +457,14 @@ class MainWindow(QMainWindow):
 
         self.generate_button.setEnabled(False)
         self.thread.start()
+
+    def toggle_advanced_settings(self, checked):
+
+        self.f5_speed_label.setVisible(checked)
+        self.f5_speed_spinbox.setVisible(checked)
+
+        self.f5_reference_text_label.setVisible(checked)
+        self.f5_reference_text.setVisible(checked)
 
     def on_generation_finished(self, audio_path):
 

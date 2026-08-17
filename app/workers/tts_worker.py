@@ -18,7 +18,7 @@ class TTSWorker(QObject):
         output_path,
         speaker_wav=None,
         speaker=None,
-        speed=0.9
+        speed=1.0
     ):
         
         super().__init__()

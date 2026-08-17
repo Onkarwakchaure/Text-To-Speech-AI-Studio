@@ -20,7 +20,7 @@ def generate_f5tts(
     reference_audio,
     output_path,
     reference_text="",
-    speed=0.8
+    speed=1.0
 ):
     result = f5_model.infer(
         ref_file=reference_audio,
