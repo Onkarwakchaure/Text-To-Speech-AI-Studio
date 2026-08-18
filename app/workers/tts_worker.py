@@ -18,7 +18,8 @@ class TTSWorker(QObject):
         output_path,
         speaker_wav=None,
         speaker=None,
-        speed=1.0
+        speed=1.0,
+        reference_text=""
     ):
         
         super().__init__()
@@ -31,6 +32,7 @@ class TTSWorker(QObject):
         self.speaker_wav = speaker_wav
         self.speaker = speaker
         self.speed = speed
+        self.reference_text = reference_text
 
     def run(self):
 
@@ -66,7 +68,8 @@ class TTSWorker(QObject):
                     text=self.text,
                     reference_audio=self.speaker_wav,
                     output_path=self.output_path,
-                    speed=self.speed
+                    speed=self.speed,
+                    reference_text=self.reference_text
                 )
 
             # Unknown engine

@@ -199,18 +199,15 @@ class MainWindow(QMainWindow):
 
         ''' F5-TTS Settings '''
 
+        # Advanced Settings Group Box
+
         self.advanced_settings = QGroupBox("Advanced Settings")
         self.advanced_settings.setCheckable(True)
         self.advanced_settings.setChecked(False)
 
         advanced_layout = QVBoxLayout()
 
-        self.advanced_settings.toggled.connect(
-            self.toggle_advanced_settings
-        )
-
-        # Speed Controrl
-
+        # F5 Speed
         self.f5_speed_label = QLabel("Speed")
 
         self.f5_speed_spinbox = QDoubleSpinBox()
@@ -218,19 +215,17 @@ class MainWindow(QMainWindow):
         self.f5_speed_spinbox.setSingleStep(0.1)
         self.f5_speed_spinbox.setValue(1.0)
 
-        right_layout.addWidget(self.f5_speed_label)
-        right_layout.addWidget(self.f5_speed_spinbox)
-
-        self.f5_speed_label.hide()
-        self.f5_speed_spinbox.hide()
+        advanced_layout.addWidget(self.f5_speed_label)
+        advanced_layout.addWidget(self.f5_speed_spinbox)
 
         # F5 Reference Text
-        self.f5_reference_text_label = QLabel("Reference Text")
 
-        self.f5_reference_text = QLineEdit()
+        self.f5_reference_text_label = QLabel("Reference Text")
+        self.f5_reference_text = QTextEdit()
         self.f5_reference_text.setPlaceholderText(
             "Optional — enter text spoken in reference audio..."
         )
+        self.f5_reference_text.setFixedHeight(80)
 
         advanced_layout.addWidget(self.f5_reference_text_label)
         advanced_layout.addWidget(self.f5_reference_text)
@@ -238,6 +233,10 @@ class MainWindow(QMainWindow):
         self.advanced_settings.setLayout(advanced_layout)
 
         right_layout.addWidget(self.advanced_settings)
+
+        self.advanced_settings.toggled.connect(
+            self.toggle_advanced_settings
+        )
 
         # Download Button
         right_layout.addStretch()
@@ -264,8 +263,6 @@ class MainWindow(QMainWindow):
         )
 
         self.toggle_sections()
-
-
 
     ''' Methods for MainWindow class '''
 
@@ -408,6 +405,7 @@ class MainWindow(QMainWindow):
 
         output_format = self.output_combo.currentText()
         f5_speed = self.f5_speed_spinbox.value()
+        f5_reference_text = self.f5_reference_text.toPlainText().strip()
 
         print(f"Text: {text}")
         print(f"Engine: {engine}")
@@ -440,7 +438,8 @@ class MainWindow(QMainWindow):
             output_path=audio_path,
             speaker_wav=self.reference_audio_path,
             speaker=selected_speaker,
-            speed=self.f5_speed_spinbox.value()
+            speed=self.f5_speed_spinbox.value(),
+            reference_text=f5_reference_text
         )
         self.worker.moveToThread(self.thread)
         # Thread starts the worker
