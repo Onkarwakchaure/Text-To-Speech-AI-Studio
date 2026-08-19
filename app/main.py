@@ -2,6 +2,7 @@ import os, sys
 from PySide6.QtCore import Qt, QUrl, QTime, QTimer, QThread
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QMainWindow,
     QWidget,
     QVBoxLayout,
@@ -211,9 +212,9 @@ class MainWindow(QMainWindow):
         self.f5_speed_label = QLabel("Speed")
 
         self.f5_speed_spinbox = QDoubleSpinBox()
-        self.f5_speed_spinbox.setRange(0.5, 2.0)
+        self.f5_speed_spinbox.setRange(0.5, 1.5)
         self.f5_speed_spinbox.setSingleStep(0.1)
-        self.f5_speed_spinbox.setValue(1.0)
+        self.f5_speed_spinbox.setValue(0.9)
 
         advanced_layout.addWidget(self.f5_speed_label)
         advanced_layout.addWidget(self.f5_speed_spinbox)
@@ -238,6 +239,13 @@ class MainWindow(QMainWindow):
             self.toggle_advanced_settings
         )
 
+        # F5 Remove Silence
+        self.f5_remove_silence = QCheckBox("Remove Silence")
+
+        advanced_layout.addWidget(
+            self.f5_remove_silence
+        )
+
         # Download Button
         right_layout.addStretch()
 
@@ -256,10 +264,6 @@ class MainWindow(QMainWindow):
 
         self.voice_combo.currentTextChanged.connect(
             self.toggle_sections
-        )
-
-        self.upload_button.clicked.connect(
-            self.select_audio_file
         )
 
         self.toggle_sections()
@@ -338,6 +342,7 @@ class MainWindow(QMainWindow):
         self.character_label.setText(f"{count} characters")
 
     def select_audio_file(self):
+
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             "Select Reference Audio",
@@ -345,11 +350,48 @@ class MainWindow(QMainWindow):
             "Audio Files (*.wav *.mp3 *.flac)"
         )
 
-        if file_path:
-            self.reference_audio_path = file_path
-            file_name = file_path.split("/")[-1]
-            self.upload_button.setText(f"✓ {file_name}")
-            self.selected_file_label.setText(f"Selected: {file_name}")
+        if not file_path:
+            return
+
+        # Check that the file exists
+        if not os.path.isfile(file_path):
+            QMessageBox.warning(
+                self,
+                "Invalid Audio File",
+                "The selected audio file could not be found."
+            )
+            return
+
+        try:
+            # Try loading the audio to verify that it is readable
+            audio = AudioSegment.from_file(file_path)
+
+            # Check that the audio actually contains data
+            if len(audio) == 0:
+                raise ValueError("The audio file is empty.")
+
+        except Exception:
+            QMessageBox.warning(
+                self,
+                "Invalid Audio File",
+                "The selected audio file could not be read.\n\n"
+                "Please choose a valid WAV, MP3, or FLAC file."
+            )
+            return
+
+        # File is valid
+        self.reference_audio_path = file_path
+        file_name = os.path.basename(file_path)
+        duration_seconds = len(audio) / 1000
+
+        self.upload_button.setText(
+            f"✓ {file_name}"
+        )
+
+        self.selected_file_label.setText(
+            f"Selected: {file_name} | "
+            f"Duration: {duration_seconds:.1f} sec"
+        )
 
     def show_audio_controls(self):
         self.play_button.show()
@@ -406,6 +448,7 @@ class MainWindow(QMainWindow):
         output_format = self.output_combo.currentText()
         f5_speed = self.f5_speed_spinbox.value()
         f5_reference_text = self.f5_reference_text.toPlainText().strip()
+        f5_remove_silence = self.f5_remove_silence.isChecked()
 
         print(f"Text: {text}")
         print(f"Engine: {engine}")
@@ -439,7 +482,8 @@ class MainWindow(QMainWindow):
             speaker_wav=self.reference_audio_path,
             speaker=selected_speaker,
             speed=self.f5_speed_spinbox.value(),
-            reference_text=f5_reference_text
+            reference_text=f5_reference_text,
+            remove_silence=f5_remove_silence
         )
         self.worker.moveToThread(self.thread)
         # Thread starts the worker
@@ -464,6 +508,8 @@ class MainWindow(QMainWindow):
 
         self.f5_reference_text_label.setVisible(checked)
         self.f5_reference_text.setVisible(checked)
+
+        self.f5_remove_silence.setVisible(checked)
 
     def on_generation_finished(self, audio_path):
 
