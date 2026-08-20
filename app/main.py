@@ -15,23 +15,26 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QStatusBar,
     QDoubleSpinBox,
-    QGroupBox,
-    QLineEdit
+    QGroupBox
     )
 from PySide6.QtMultimedia import (
     QMediaPlayer,
     QAudioOutput)
 from pydub import AudioSegment
 from ui.clickable_slider import ClickableSlider
-from tts.xtts_engine import generate_xtts, get_available_speakers
+from tts.xtts_engine import get_available_speakers
 from workers.tts_worker import TTSWorker
+from utils.settings_manager import SettingsManager
 from datetime import datetime
 
 class MainWindow(QMainWindow):
        
     def __init__(self):
         super().__init__()
-        
+
+        # Initialize Settings Manager
+        self.settings_manager = SettingsManager()
+
         ## Window Settings
         self.setWindowTitle("Text-To-Speech AI Studio")
         self.resize(1200, 700)
@@ -266,6 +269,7 @@ class MainWindow(QMainWindow):
             self.toggle_sections
         )
 
+        self.load_settings()
         self.toggle_sections()
 
     ''' Methods for MainWindow class '''
@@ -674,6 +678,121 @@ class MainWindow(QMainWindow):
             selected_format)
         self.set_status("Audio saved successfully.")
         self.reset_status()
+
+    def load_settings(self):
+
+        self.engine_combo.setCurrentText(
+            self.settings_manager.load(
+                "engine",
+                "XTTS v2"
+            )
+        )
+
+        self.language_combo.setCurrentText(
+            self.settings_manager.load(
+                "language",
+                "English"
+            )
+        )
+
+        self.voice_combo.setCurrentText(
+            self.settings_manager.load(
+                "voice_mode",
+                "Default Voice"
+            )
+        )
+
+        self.default_voice_combo.setCurrentText(
+            self.settings_manager.load(
+                "speaker",
+                "Ana Florence"
+            )
+        )
+
+        self.output_combo.setCurrentText(
+            self.settings_manager.load(
+                "output_format",
+                "MP3"
+            )
+        )
+
+        self.f5_speed_spinbox.setValue(
+            float(
+                self.settings_manager.load(
+                    "f5_speed",
+                    0.9
+                )
+            )
+        )
+
+        self.f5_reference_text.setPlainText(
+            self.settings_manager.load(
+                "f5_reference_text",
+                ""
+            )
+        )
+
+        remove_silence = self.settings_manager.load(
+            "f5_remove_silence",
+            False
+        )
+
+        self.f5_remove_silence.setChecked(
+            bool(remove_silence)
+        )
+    
+    def save_settings(self):
+
+        self.settings_manager.save(
+            "engine",
+            self.engine_combo.currentText()
+        )
+
+        self.settings_manager.save(
+            "language",
+            self.language_combo.currentText()
+        )
+
+        self.settings_manager.save(
+            "voice_mode",
+            self.voice_combo.currentText()
+        )
+
+        self.settings_manager.save(
+            "speaker",
+            self.default_voice_combo.currentText()
+        )
+
+        self.settings_manager.save(
+            "output_format",
+            self.output_combo.currentText()
+        )
+
+        self.settings_manager.save(
+            "f5_speed",
+            self.f5_speed_spinbox.value()
+        )
+
+        self.settings_manager.save(
+            "f5_reference_text",
+            self.f5_reference_text.toPlainText()
+        )
+
+        self.settings_manager.save(
+            "f5_remove_silence",
+            self.f5_remove_silence.isChecked()
+        )
+
+        self.settings_manager.save(
+            "advanced_settings",
+            self.advanced_settings.isChecked()
+        )
+
+    def closeEvent(self, event):
+
+        self.save_settings()
+
+        event.accept()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
