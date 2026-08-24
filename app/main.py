@@ -34,6 +34,9 @@ class MainWindow(QMainWindow):
 
         # Initialize Settings Manager
         self.settings_manager = SettingsManager()
+        
+        self.xtts_voice_mode = "Default Voice"
+        self.f5_forced_voice_mode = False
 
         ## Window Settings
         self.setWindowTitle("Text-To-Speech AI Studio")
@@ -145,8 +148,13 @@ class MainWindow(QMainWindow):
         # Default Voice Selection
 
         self.default_voice_label = QLabel("Voice")
+
         self.default_voice_combo = QComboBox()
-        self.default_voice_combo.addItems(get_available_speakers())
+
+        speakers = get_available_speakers()
+        speakers.sort()
+
+        self.default_voice_combo.addItems(speakers)
 
         right_layout.addWidget(self.default_voice_label)
         right_layout.addWidget(self.default_voice_combo)
@@ -278,6 +286,9 @@ class MainWindow(QMainWindow):
 
         engine = self.engine_combo.currentText()
         voice_mode = self.voice_combo.currentText()
+        
+        if engine == "XTTS v2" and voice_mode != "Voice Cloning":
+            self.xtts_voice_mode = voice_mode
 
         if engine == "F5-TTS":
             self.advanced_settings.show()
@@ -316,8 +327,24 @@ class MainWindow(QMainWindow):
 
                 self.voice_combo.blockSignals(False)
 
+                self.f5_forced_voice_mode = True
+
         # XTTS v2
         else:
+
+            if self.f5_forced_voice_mode:
+
+                self.voice_combo.blockSignals(True)
+
+                self.voice_combo.setCurrentText(
+                    self.xtts_voice_mode
+                )
+
+                self.voice_combo.blockSignals(False)
+
+                self.f5_forced_voice_mode = False
+
+                voice_mode = self.xtts_voice_mode
 
             self.language_label.show()
             self.language_combo.show()
@@ -737,8 +764,23 @@ class MainWindow(QMainWindow):
             False
         )
 
+        if isinstance(remove_silence, str):
+            remove_silence = remove_silence.lower() == "true"
+
         self.f5_remove_silence.setChecked(
-            bool(remove_silence)
+            remove_silence
+        )
+
+        advanced_settings = self.settings_manager.load(
+            "advanced_settings",
+            False
+        )
+
+        if isinstance(advanced_settings, str):
+            advanced_settings = advanced_settings.lower() == "true"
+
+        self.advanced_settings.setChecked(
+            advanced_settings
         )
     
     def save_settings(self):
