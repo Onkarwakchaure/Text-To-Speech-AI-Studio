@@ -15,7 +15,9 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QStatusBar,
     QDoubleSpinBox,
-    QGroupBox
+    QGroupBox,
+    QInputDialog,
+    QMenu
     )
 from PySide6.QtMultimedia import (
     QMediaPlayer,
@@ -25,6 +27,8 @@ from ui.clickable_slider import ClickableSlider
 from tts.xtts_engine import get_available_speakers
 from workers.tts_worker import TTSWorker
 from utils.settings_manager import SettingsManager
+from utils.voice_manager import VoiceManager
+from ui.voice_combo_box import VoiceComboBox
 from datetime import datetime
 
 class MainWindow(QMainWindow):
@@ -34,7 +38,11 @@ class MainWindow(QMainWindow):
 
         # Initialize Settings Manager
         self.settings_manager = SettingsManager()
+
+        # Initialize Voice Manager
+        self.voice_manager = VoiceManager()
         
+        # voice mode state variables
         self.xtts_voice_mode = "Default Voice"
         self.f5_forced_voice_mode = False
 
@@ -172,15 +180,59 @@ class MainWindow(QMainWindow):
 
         self.reference_audio_path = None
 
-        right_layout.addWidget(self.upload_label)
-        right_layout.addWidget(self.upload_button)
-        right_layout.addWidget(self.selected_file_label)
+        # Save Reference Voice
+
+        self.save_voice_button = QPushButton(
+            "Save Voice"
+        )
+
+        self.saved_voices_label = QLabel(
+            "Saved Reference Voices"
+        )
+
+        self.saved_voices_combo = VoiceComboBox()
+        self.saved_voices_combo.rightClicked.connect(
+            self.show_voice_context_menu
+        )
+
+        self.save_voice_button.hide()
+        self.saved_voices_label.hide()
+        self.saved_voices_combo.hide()
+
+        self.save_voice_button.clicked.connect(
+            self.save_reference_voice
+        )
+
+        right_layout.addWidget(
+            self.upload_label
+        )
+        right_layout.addWidget(
+            self.upload_button
+        )
+        right_layout.addWidget(
+            self.selected_file_label
+        )
+        
+        right_layout.addWidget(
+            self.save_voice_button
+        )
+
+        right_layout.addWidget(
+            self.saved_voices_label
+        )
+
+        right_layout.addWidget(
+            self.saved_voices_combo
+        )
         self.upload_label.hide()
         self.upload_button.hide()
         self.selected_file_label.hide()
 
         self.upload_button.clicked.connect(
             self.select_audio_file
+        )
+        self.saved_voices_combo.textActivated.connect(
+            self.select_saved_voice
         )
 
         self.player = QMediaPlayer()
@@ -278,6 +330,7 @@ class MainWindow(QMainWindow):
         )
 
         self.load_settings()
+        self.load_saved_voices()
         self.toggle_sections()
 
     ''' Methods for MainWindow class '''
@@ -423,7 +476,385 @@ class MainWindow(QMainWindow):
             f"Selected: {file_name} | "
             f"Duration: {duration_seconds:.1f} sec"
         )
+        self.save_voice_button.show()
 
+    def save_reference_voice(self):
+
+        if self.reference_audio_path is None:
+            QMessageBox.warning(
+                self,
+                "No Reference Audio",
+                "Please select a reference audio file first."
+            )
+            return
+
+        voice_name, ok = QInputDialog.getText(
+            self,
+            "Save Reference Voice",
+            "Voice Name:"
+        )
+
+        if not ok:
+            return
+
+        voice_name = voice_name.strip()
+
+        if not voice_name:
+            QMessageBox.warning(
+                self,
+                "Invalid Voice Name",
+                "Please enter a name for the saved voice."
+            )
+            return
+
+        # Check for duplicate names
+        existing_voices = self.voice_manager.get_saved_voices()
+
+        if voice_name.lower() in [
+            name.lower()
+            for name in existing_voices
+        ]:
+            QMessageBox.warning(
+                self,
+                "Voice Already Exists",
+                f"A saved voice named '{voice_name}' already exists."
+            )
+            return
+
+        try:
+
+            self.voice_manager.save_voice(
+                voice_name,
+                self.reference_audio_path
+            )
+
+        except Exception as e:
+
+            QMessageBox.critical(
+                self,
+                "Save Voice Error",
+                f"Failed to save the reference voice.\n\n{e}"
+            )
+            return
+
+    # Add the new voice to the list
+        self.saved_voices_combo.addItem(
+            voice_name
+        )
+
+        self.saved_voices_combo.setCurrentText(
+            voice_name
+        )
+
+        # Show saved voices section
+        self.saved_voices_label.show()
+        self.saved_voices_combo.show()
+
+        # Hide Save Voice button after saving
+        self.save_voice_button.hide()
+
+        self.set_status(
+            f"Reference voice '{voice_name}' saved."
+        )
+        self.reset_status()
+
+    def load_saved_voices(self):
+
+        self.saved_voices_combo.clear()
+
+        saved_voices = self.voice_manager.get_saved_voices()
+
+        if not saved_voices:
+            self.saved_voices_label.hide()
+            self.saved_voices_combo.hide()
+            return
+
+        self.saved_voices_combo.addItems(
+            saved_voices
+        )
+
+        self.saved_voices_label.show()
+        self.saved_voices_combo.show()
+
+    def select_saved_voice(self, voice_name):
+
+        voice_path = self.voice_manager.get_voice_path(
+            voice_name
+        )
+
+        if voice_path is None:
+            return
+
+        self.reference_audio_path = voice_path
+
+        file_name = os.path.basename(voice_path)
+
+        audio = AudioSegment.from_file(
+            voice_path
+        )
+
+        duration_seconds = len(audio) / 1000
+
+        self.upload_button.setText(
+            f"✓ {file_name}"
+        )
+
+        self.selected_file_label.setText(
+            f"Selected: {file_name} | "
+            f"Duration: {duration_seconds:.1f} sec"
+        )
+
+        self.save_voice_button.hide()
+
+    def show_voice_context_menu(self, voice_name, global_position):
+
+        if not voice_name:
+            return
+
+        menu = QMenu(self)
+
+        update_action = menu.addAction("Update Voice")
+        rename_action = menu.addAction("Rename Voice")
+        delete_action = menu.addAction("Delete Voice")
+
+        action = menu.exec(
+            global_position
+        )
+
+        if action == update_action:
+            self.update_saved_voice(voice_name)
+
+        elif action == rename_action:
+            self.rename_saved_voice(voice_name)
+
+        elif action == delete_action:
+            self.delete_saved_voice(voice_name)
+            
+    def update_saved_voice(self, voice_name):
+
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Select New Reference Audio",
+            "",
+            "Audio Files (*.wav *.mp3 *.flac *.ogg)"
+        )
+
+        if not file_path:
+            return
+
+        try:
+            audio = AudioSegment.from_file(
+                file_path
+            )
+
+            duration_seconds = len(audio) / 1000
+
+            if duration_seconds <= 0:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Audio",
+                    "The selected audio file is empty."
+                )
+                return
+
+        except Exception as e:
+
+            QMessageBox.warning(
+                self,
+                "Invalid Audio",
+                f"Could not read the selected audio file.\n\n{e}"
+            )
+            return
+
+        try:
+
+            updated_path = self.voice_manager.update_voice(
+                voice_name,
+                file_path
+            )
+
+        except Exception as e:
+
+            QMessageBox.critical(
+                self,
+                "Update Voice Error",
+                f"Failed to update '{voice_name}'.\n\n{e}"
+            )
+            return
+
+        if updated_path is None:
+            QMessageBox.warning(
+                self,
+                "Voice Not Found",
+                f"The saved voice '{voice_name}' could not be found."
+            )
+            return
+
+        # If this voice is currently selected,
+        # update the active reference audio.
+        if (
+            self.saved_voices_combo.currentText()
+            == voice_name
+        ):
+
+            self.reference_audio_path = updated_path
+
+            file_name = os.path.basename(
+                updated_path
+            )
+
+            self.upload_button.setText(
+                f"✓ {file_name}"
+            )
+
+            self.selected_file_label.setText(
+                f"Selected: {file_name} | "
+                f"Duration: {duration_seconds:.1f} sec"
+            )
+
+        self.load_saved_voices()
+
+        self.saved_voices_combo.setCurrentText(
+            voice_name
+        )
+
+        self.set_status(
+            f"Reference voice '{voice_name}' updated."
+        )
+
+        self.reset_status()
+
+    def rename_saved_voice(self, old_name):
+
+        was_active = (
+            self.saved_voices_combo.currentText()
+            == old_name
+        )
+
+        new_name, ok = QInputDialog.getText(
+            self,
+            "Rename Reference Voice",
+            "New Voice Name:",
+            text=old_name
+        )
+
+        if not ok:
+            return
+
+        new_name = new_name.strip()
+
+        if not new_name:
+            QMessageBox.warning(
+                self,
+                "Invalid Voice Name",
+                "Please enter a name for the saved voice."
+            )
+            return
+
+        if new_name.lower() == old_name.lower():
+            return
+
+        existing_voices = self.voice_manager.get_saved_voices()
+
+        if new_name.lower() in [
+            name.lower()
+            for name in existing_voices
+        ]:
+            QMessageBox.warning(
+                self,
+                "Voice Already Exists",
+                f"A saved voice named '{new_name}' already exists."
+            )
+            return
+
+        renamed_path = self.voice_manager.rename_voice(
+            old_name,
+            new_name
+        )
+
+        if renamed_path is None:
+            QMessageBox.warning(
+                self,
+                "Rename Failed",
+                f"Could not rename '{old_name}'."
+            )
+            return
+
+        self.load_saved_voices()
+
+        self.saved_voices_combo.setCurrentText(
+            new_name
+        )
+
+        if was_active:
+            self.reference_audio_path = renamed_path
+
+            file_name = os.path.basename(
+                renamed_path
+            )
+
+            self.upload_button.setText(
+                f"✓ {file_name}"
+            )
+            
+        self.set_status(
+            f"Reference voice '{old_name}' renamed to '{new_name}'."
+        )
+
+        self.reset_status()
+
+    def delete_saved_voice(self, voice_name):
+
+        reply = QMessageBox.question(
+            self,
+            "Delete Reference Voice",
+            f"Are you sure you want to delete "
+            f"the saved voice '{voice_name}'?\n\n"
+            "This will remove the saved reference audio.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply != QMessageBox.Yes:
+            return
+
+        was_active = (
+            self.saved_voices_combo.currentText()
+            == voice_name
+        )
+
+        deleted = self.voice_manager.delete_voice(
+            voice_name
+        )
+
+        if not deleted:
+            QMessageBox.warning(
+                self,
+                "Delete Failed",
+                f"Could not delete '{voice_name}'."
+            )
+            return
+
+        self.load_saved_voices()
+
+        if was_active:
+
+            self.reference_audio_path = None
+
+            self.upload_button.setText(
+                "Select Audio File"
+            )
+
+            self.selected_file_label.setText(
+                "No file selected"
+            )
+
+        self.set_status(
+            f"Reference voice '{voice_name}' deleted."
+        )
+
+        self.reset_status()
+        
     def show_audio_controls(self):
         self.play_button.show()
         self.pause_button.show()
