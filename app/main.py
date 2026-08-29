@@ -368,6 +368,9 @@ class MainWindow(QMainWindow):
             self.upload_button.show()
             self.selected_file_label.show()
 
+            self.saved_voices_label.show()
+            self.saved_voices_combo.show()
+
             # F5 requires reference audio,
             # so force Voice Cloning mode.
             if voice_mode != "Voice Cloning":
@@ -411,6 +414,9 @@ class MainWindow(QMainWindow):
                 self.default_voice_label.hide()
                 self.default_voice_combo.hide()
 
+                self.saved_voices_label.show()
+                self.saved_voices_combo.show()
+
             else:
 
                 self.upload_label.hide()
@@ -419,6 +425,9 @@ class MainWindow(QMainWindow):
 
                 self.default_voice_label.show()
                 self.default_voice_combo.show()
+
+                self.saved_voices_label.hide()
+                self.saved_voices_combo.hide()
                 
     def update_character_count(self):
         text = self.text_input.toPlainText()
@@ -908,9 +917,26 @@ class MainWindow(QMainWindow):
             return
 
         output_format = self.output_combo.currentText()
-        f5_speed = self.f5_speed_spinbox.value()
-        f5_reference_text = self.f5_reference_text.toPlainText().strip()
-        f5_remove_silence = self.f5_remove_silence.isChecked()
+
+        if self.advanced_settings.isChecked():
+
+            f5_speed = self.f5_speed_spinbox.value()
+
+            f5_reference_text = (
+                self.f5_reference_text
+                .toPlainText()
+                .strip()
+            )
+
+            f5_remove_silence = (
+                self.f5_remove_silence.isChecked()
+            )
+
+        else:
+
+            f5_speed = 1.0
+            f5_reference_text = ""
+            f5_remove_silence = False
 
         print(f"Text: {text}")
         print(f"Engine: {engine}")
@@ -918,6 +944,7 @@ class MainWindow(QMainWindow):
         print(f"Voice Mode: {voice_mode}")
         print(f"Output Format: {output_format}")
         print(f"F5 Speed: {f5_speed}")
+        print(f"F5_remove_silence: {f5_remove_silence}")
 
         if voice_mode == "Voice Cloning":
             print(f"Reference Audio: {self.reference_audio_path}")
@@ -943,7 +970,7 @@ class MainWindow(QMainWindow):
             output_path=audio_path,
             speaker_wav=self.reference_audio_path,
             speaker=selected_speaker,
-            speed=self.f5_speed_spinbox.value(),
+            speed=f5_speed,
             reference_text=f5_reference_text,
             remove_silence=f5_remove_silence
         )
