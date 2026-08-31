@@ -17,7 +17,8 @@ from PySide6.QtWidgets import (
     QDoubleSpinBox,
     QGroupBox,
     QInputDialog,
-    QMenu
+    QMenu,
+    QStackedWidget
     )
 from PySide6.QtMultimedia import (
     QMediaPlayer,
@@ -29,6 +30,8 @@ from workers.tts_worker import TTSWorker
 from utils.settings_manager import SettingsManager
 from utils.voice_manager import VoiceManager
 from ui.voice_combo_box import VoiceComboBox
+from ui.sidebar import Sidebar
+from ui.history_page import HistoryPage
 from datetime import datetime
 
 class MainWindow(QMainWindow):
@@ -61,11 +64,46 @@ class MainWindow(QMainWindow):
         main_layout = QHBoxLayout()
         central_widget.setLayout(main_layout)
 
+        self.sidebar = Sidebar()
+
         left_layout = QVBoxLayout()
         right_layout = QVBoxLayout()
 
-        main_layout.addLayout(left_layout, 3)
-        main_layout.addLayout(right_layout, 1)
+        # TTS page
+        self.tts_page = QWidget()
+        self.tts_page.setLayout(left_layout)
+
+        # History page
+        self.history_page = HistoryPage()
+
+        # Page stack
+        self.page_stack = QStackedWidget()
+
+        self.page_stack.addWidget(
+            self.tts_page
+        )
+
+        self.page_stack.addWidget(
+            self.history_page
+        )
+
+        main_layout.addWidget(
+            self.sidebar
+        )
+
+        main_layout.addWidget(
+            self.page_stack,
+            3
+        )
+
+        main_layout.addLayout(
+            right_layout,
+            1
+        )
+
+        self.sidebar.page_changed.connect(
+            self.change_page
+        )
 
         ## Text Input Section
         self.text_input = QTextEdit()
@@ -334,6 +372,20 @@ class MainWindow(QMainWindow):
         self.toggle_sections()
 
     ''' Methods for MainWindow class '''
+
+    def change_page(self, page):
+
+        if page == "generate":
+
+            self.page_stack.setCurrentWidget(
+                self.tts_page
+            )
+
+        elif page == "history":
+
+            self.page_stack.setCurrentWidget(
+                self.history_page
+            )
 
     def toggle_sections(self):
 
@@ -1163,7 +1215,7 @@ class MainWindow(QMainWindow):
             selected_format)
         self.set_status("Audio saved successfully.")
         self.reset_status()
-
+    
     def load_settings(self):
 
         self.engine_combo.setCurrentText(
