@@ -1,4 +1,5 @@
-from PySide6.QtCore import Qt, Signal, QPropertyAnimation
+from PySide6.QtCore import QSize, Qt, Signal, QPropertyAnimation
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -32,7 +33,15 @@ class Sidebar(QWidget):
         self.setLayout(self.layout)
 
         # Collapse / Expand button
-        self.toggle_button = QPushButton("☰")
+        self.toggle_button = QPushButton()
+
+        self.toggle_button.setIcon(
+            QIcon("app/assets/icons/menu.svg")
+        )
+
+        self.toggle_button.setIconSize(
+            QSize(20, 20)
+        )
 
         self.toggle_button.setFixedHeight(40)
 
@@ -49,6 +58,7 @@ class Sidebar(QWidget):
         font.setPointSize(12)
         font.setBold(True)
         self.title_button.setFont(font)
+        self.title_button.setFixedHeight(40)
 
         self.layout.addWidget(
             self.title_button
@@ -56,8 +66,20 @@ class Sidebar(QWidget):
 
         # Generate button
         self.generate_button = QPushButton(
-            "🎙 Generate"
+            "Generate"
         )
+
+        self.generate_button.setIcon(
+            QIcon("app/assets/icons/generate.svg")
+        )
+
+        self.generate_button.setIconSize(
+            QSize(20, 20)
+        )
+
+        font = self.generate_button.font()
+        font.setPointSize(12)
+        self.generate_button.setFont(font)
 
         self.generate_button.setFixedHeight(40)
 
@@ -67,8 +89,20 @@ class Sidebar(QWidget):
 
         # History button
         self.history_button = QPushButton(
-            "🕘 History"
+            "History"
         )
+
+        self.history_button.setIcon(
+            QIcon("app/assets/icons/history.svg")
+        )
+
+        self.history_button.setIconSize(
+            QSize(20, 20)
+        )
+
+        font = self.history_button.font()
+        font.setPointSize(12)
+        self.history_button.setFont(font)
 
         self.history_button.setFixedHeight(40)
 
@@ -83,7 +117,7 @@ class Sidebar(QWidget):
             QPushButton {
                 border: none;
                 background: transparent;
-                padding: 8px;
+                padding: 2px;
             }
 
             QPushButton:hover {
@@ -143,11 +177,11 @@ class Sidebar(QWidget):
         self.toggle_button.show()
 
         self.generate_button.setText(
-            "🎙"
+            ""
         )
 
         self.history_button.setText(
-            "🕘"
+            ""
         )
 
     def collapse_sidebar(self):
@@ -172,16 +206,20 @@ class Sidebar(QWidget):
         # Hide title
         self.title_button.hide()
 
+        self.toggle_button.setFixedSize(40, 40)
+        self.generate_button.setFixedSize(40, 40)
+        self.history_button.setFixedSize(40, 40)
+
         # Show menu button
         self.toggle_button.show()
 
         # Icons only
         self.generate_button.setText(
-            "🎙"
+            ""
         )
 
         self.history_button.setText(
-            "🕘"
+            ""
         )
 
     def expand_sidebar(self):
@@ -211,9 +249,18 @@ class Sidebar(QWidget):
 
         # Full labels
         self.generate_button.setText(
-            "🎙 Generate"
+            "Generate"
         )
 
         self.history_button.setText(
-            "🕘 History"
+            "History"
         )
+
+        self.toggle_button.setMinimumSize(0, 0)
+        self.toggle_button.setMaximumSize(16777215, 16777215)
+
+        self.generate_button.setMinimumSize(0, 0)
+        self.generate_button.setMaximumSize(16777215, 16777215)
+
+        self.history_button.setMinimumSize(0, 0)
+        self.history_button.setMaximumSize(16777215, 16777215)
