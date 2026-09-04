@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(
             self.page_stack,
-            3
+            4
         )
 
         main_layout.addLayout(
@@ -196,12 +196,12 @@ class MainWindow(QMainWindow):
         self.default_voice_label = QLabel("Voice")
 
         self.default_voice_combo = QComboBox()
-
+        '''
         speakers = get_available_speakers()
         speakers.sort()
 
         self.default_voice_combo.addItems(speakers)
-
+        '''
         right_layout.addWidget(self.default_voice_label)
         right_layout.addWidget(self.default_voice_combo)
         self.default_voice_label.hide()

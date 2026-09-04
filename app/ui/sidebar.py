@@ -25,7 +25,7 @@ class Sidebar(QWidget):
         self.layout = QVBoxLayout()
 
         self.layout.setContentsMargins(
-            4, 4, 4, 4
+            4, 4, 0, 4
         )
 
         self.layout.setSpacing(4)
@@ -58,6 +58,7 @@ class Sidebar(QWidget):
         font.setPointSize(12)
         font.setBold(True)
         self.title_button.setFont(font)
+
         self.title_button.setFixedHeight(40)
 
         self.layout.addWidget(
@@ -72,11 +73,11 @@ class Sidebar(QWidget):
         self.generate_button.setIcon(
             QIcon("app/assets/icons/generate.svg")
         )
-
+        
         self.generate_button.setIconSize(
             QSize(20, 20)
         )
-
+        
         font = self.generate_button.font()
         font.setPointSize(12)
         self.generate_button.setFont(font)
@@ -117,7 +118,6 @@ class Sidebar(QWidget):
             QPushButton {
                 border: none;
                 background: transparent;
-                padding: 2px;
             }
 
             QPushButton:hover {
@@ -259,8 +259,10 @@ class Sidebar(QWidget):
         self.toggle_button.setMinimumSize(0, 0)
         self.toggle_button.setMaximumSize(16777215, 16777215)
 
-        self.generate_button.setMinimumSize(0, 0)
-        self.generate_button.setMaximumSize(16777215, 16777215)
+        self.generate_button.setMinimumWidth(0)
+        self.generate_button.setMaximumWidth(16777215)
+        self.generate_button.setFixedHeight(40)
 
-        self.history_button.setMinimumSize(0, 0)
-        self.history_button.setMaximumSize(16777215, 16777215)
+        self.history_button.setMinimumWidth(0)
+        self.history_button.setMaximumWidth(16777215)
+        self.history_button.setFixedHeight(40)

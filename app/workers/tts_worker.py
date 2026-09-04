@@ -1,8 +1,8 @@
 from PySide6.QtCore import QObject, Signal
-
+'''
 from tts.xtts_engine import generate_xtts
 from tts.f5_engine import generate_f5tts
-
+''' 
 
 class TTSWorker(QObject):
 
@@ -44,6 +44,8 @@ class TTSWorker(QObject):
 
             if self.engine == "XTTS v2":
 
+                from tts.xtts_engine import generate_xtts
+
                 if self.voice_mode == "Voice Cloning":
 
                     generate_xtts(
@@ -65,6 +67,8 @@ class TTSWorker(QObject):
             # F5-TTS
 
             elif self.engine == "F5-TTS":
+
+                from tts.f5_engine import generate_f5tts
 
                 generate_f5tts(
                     text=self.text,

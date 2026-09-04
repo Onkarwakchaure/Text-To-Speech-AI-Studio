@@ -1,9 +1,25 @@
 from TTS.api import TTS
-import os
 
-tts_model = TTS(
-    "tts_models/multilingual/multi-dataset/xtts_v2"
-)
+
+tts_model = None
+
+
+def get_xtts_model():
+
+    global tts_model
+
+    if tts_model is None:
+
+        print("Loading XTTS v2 Model...")
+
+        tts_model = TTS(
+            "tts_models/multilingual/multi-dataset/xtts_v2"
+        )
+
+        print("XTTS v2 Loaded.")
+
+    return tts_model
+
 
 def generate_xtts(
     text,
@@ -11,12 +27,15 @@ def generate_xtts(
     output_path,
     speaker="Ana Florence",
     speaker_wav=None
-    ):
+):
+
+    model = get_xtts_model()
 
     print("Speaker WAV:", speaker_wav)
 
     if speaker_wav:
-        tts_model.tts_to_file(
+
+        model.tts_to_file(
             text=text,
             file_path=output_path,
             speaker_wav=speaker_wav,
@@ -24,7 +43,8 @@ def generate_xtts(
         )
 
     else:
-        tts_model.tts_to_file(
+
+        model.tts_to_file(
             text=text,
             file_path=output_path,
             speaker=speaker,
@@ -33,5 +53,11 @@ def generate_xtts(
 
     return output_path
 
+
 def get_available_speakers():
-    return list(tts_model.synthesizer.tts_model.speaker_manager.name_to_id)
+
+    model = get_xtts_model()
+
+    return list(
+        model.synthesizer.tts_model.speaker_manager.name_to_id
+    )
