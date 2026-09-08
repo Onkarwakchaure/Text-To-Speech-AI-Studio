@@ -196,12 +196,12 @@ class MainWindow(QMainWindow):
         self.default_voice_label = QLabel("Voice")
 
         self.default_voice_combo = QComboBox()
-        '''
+        
         speakers = get_available_speakers()
         speakers.sort()
 
         self.default_voice_combo.addItems(speakers)
-        '''
+        
         right_layout.addWidget(self.default_voice_label)
         right_layout.addWidget(self.default_voice_combo)
         self.default_voice_label.hide()
@@ -1056,6 +1056,13 @@ class MainWindow(QMainWindow):
 
         self.generated_audio_path = audio_path
         self.load_audio(audio_path)
+
+        self.history_page.add_history_entry(
+            self.text_input.toPlainText(),
+            self.engine_combo.currentText(),
+            datetime.now()
+        )
+            
         self.show_audio_controls()
         self.show_download_button()
         self.set_status("Speech generated successfully.")

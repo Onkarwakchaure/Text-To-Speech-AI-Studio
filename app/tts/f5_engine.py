@@ -2,31 +2,18 @@ import time
 
 from f5_tts.api import F5TTS
 
+print("Loading F5-TTS Model...")
 
-f5_model = None
+load_start = time.perf_counter()
 
+f5_model = F5TTS()
 
-def get_f5_model():
+load_end = time.perf_counter()
 
-    global f5_model
-
-    if f5_model is None:
-
-        print("Loading F5-TTS Model...")
-
-        load_start = time.perf_counter()
-
-        f5_model = F5TTS()
-
-        load_end = time.perf_counter()
-
-        print(
-            f"F5-TTS Loaded in "
-            f"{load_end - load_start:.2f} seconds."
-        )
-
-    return f5_model
-
+print(
+    f"F5-TTS Loaded in "
+    f"{load_end - load_start:.2f} seconds."
+)
 
 def generate_f5tts(
     text,
@@ -36,10 +23,7 @@ def generate_f5tts(
     speed=1.0,
     remove_silence=False
 ):
-
-    model = get_f5_model()
-
-    result = model.infer(
+    result = f5_model.infer(
         ref_file=reference_audio,
         ref_text=reference_text,
         gen_text=text,

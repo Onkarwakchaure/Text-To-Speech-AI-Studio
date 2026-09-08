@@ -1,0 +1,17 @@
+[
+    {
+        "text": "Now let's test persistence only before changing the UI again.",
+        "engine": "XTTS v2",
+        "timestamp": "2026-09-08T22:16:45.157318"
+    },
+    {
+        "text": "Perfect!",
+        "engine": "XTTS v2",
+        "timestamp": "2026-09-08T22:14:23.232855"
+    },
+    {
+        "text": "Do these tests and tell me whether the history survives the restart.",
+        "engine": "F5-TTS",
+        "timestamp": "2026-09-08T22:30:24.972511"
+    }
+]
