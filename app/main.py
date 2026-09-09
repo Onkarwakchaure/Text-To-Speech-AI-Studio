@@ -1060,7 +1060,8 @@ class MainWindow(QMainWindow):
         self.history_page.add_history_entry(
             self.text_input.toPlainText(),
             self.engine_combo.currentText(),
-            datetime.now()
+            datetime.now(),
+            self.generated_audio_path
         )
             
         self.show_audio_controls()

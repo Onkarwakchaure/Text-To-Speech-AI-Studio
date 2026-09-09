@@ -1,17 +1,38 @@
 [
     {
-        "text": "Now let's test persistence only before changing the UI again.",
+        "text": "This is a longer test sentence for the history page.\nI want to see how the history card behaves when the generated text contains multiple lines.\nThe Play and More buttons should remain vertically centered.",
         "engine": "XTTS v2",
-        "timestamp": "2026-09-08T22:16:45.157318"
+        "timestamp": "2026-09-09T20:48:39.871047",
+        "audio_path": ""
     },
     {
-        "text": "Perfect!",
+        "text": "Hey whats up!",
         "engine": "XTTS v2",
-        "timestamp": "2026-09-08T22:14:23.232855"
+        "timestamp": "2026-09-09T20:42:24.878438",
+        "audio_path": ""
     },
     {
         "text": "Do these tests and tell me whether the history survives the restart.",
         "engine": "F5-TTS",
-        "timestamp": "2026-09-08T22:30:24.972511"
+        "timestamp": "2026-09-08T22:30:24.972511",
+        "audio_path": ""
+    },
+    {
+        "text": "Now let's test persistence only before changing the UI again.",
+        "engine": "XTTS v2",
+        "timestamp": "2026-09-08T22:16:45.157318",
+        "audio_path": ""
+    },
+    {
+        "text": "Perfect!",
+        "engine": "XTTS v2",
+        "timestamp": "2026-09-08T22:14:23.232855",
+        "audio_path": ""
+    },
+    {
+        "text": "Tell me what happens when you click.",
+        "engine": "XTTS v2",
+        "timestamp": "2026-09-09T22:01:23.901246",
+        "audio_path": "output/generated_20260909_220105_513149.wav"
     }
 ]

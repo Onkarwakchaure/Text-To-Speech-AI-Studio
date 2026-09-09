@@ -21,10 +21,12 @@ class HistoryCard(QFrame):
         self,
         text,
         engine,
-        timestamp
+        timestamp,
+        audio_path
     ):
         super().__init__()
 
+        self.audio_path = audio_path
         self.setObjectName("historyCard")
 
         self.setStyleSheet(
@@ -59,17 +61,22 @@ class HistoryCard(QFrame):
         layout = QVBoxLayout()
 
         layout.setContentsMargins(
-            14, 7, 14, 7
+            14, 6, 14, 6
         )
 
         layout.setSpacing(4)
 
         self.setLayout(layout)
 
-        # Top row
-        top_layout = QHBoxLayout()
+        # Main horizontal layout
+        main_layout = QHBoxLayout()
 
-        top_layout.setSpacing(8)
+        main_layout.setSpacing(8)
+
+        # Left side
+        left_layout = QVBoxLayout()
+
+        left_layout.setSpacing(4)
 
         # Generated text
         self.text_label = QLabel(text)
@@ -80,87 +87,8 @@ class HistoryCard(QFrame):
             "font-size: 14px;"
         )
 
-        top_layout.addWidget(
-            self.text_label,
-            1
-        )
-
-        # Play button
-        self.play_button = QPushButton()
-
-        self.play_button.setIcon(
-            QIcon("app/assets/icons/play.svg")
-        )
-
-        self.play_button.setIconSize(
-            QSize(24, 24)
-        )
-
-        self.play_button.setFixedSize(
-            40, 40
-        )
-
-        self.play_button.setStyleSheet(
-            """
-            QPushButton {
-                border: none;
-                background: transparent;
-                font-size: 18px;
-                padding: 0px;
-            }
-
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 20);
-                border-radius: 6px;
-            }
-            """
-        )
-
-        top_layout.addWidget(
-            self.play_button,
-            0,
-            Qt.AlignVCenter
-        )
-
-        # More button
-        self.more_button = QPushButton()
-
-        self.more_button.setIcon(
-            QIcon("app/assets/icons/More.svg")
-        )
-
-        self.more_button.setIconSize(
-            QSize(24, 24)
-        )
-
-        self.more_button.setFixedSize(
-            40, 40
-        )
-
-        self.more_button.setStyleSheet(
-            """
-            QPushButton {
-                border: none;
-                background: transparent;
-                font-size: 20px;
-                padding: 0px;
-            }
-
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 20);
-                border-radius: 6px;
-            }
-            """
-        )
-
-        top_layout.addWidget(
-            self.more_button,
-            0,
-            Qt.AlignVCenter
-        )
-
-        layout.addLayout(
-            top_layout
+        left_layout.addWidget(
+            self.text_label
         )
 
         # Metadata
@@ -179,10 +107,84 @@ class HistoryCard(QFrame):
             """
         )
 
-        layout.addWidget(
+        left_layout.addWidget(
             self.info_label
         )
 
+        main_layout.addLayout(
+            left_layout,
+            1
+        )
+
+        # Right side buttons
+        button_layout = QHBoxLayout()
+
+        button_layout.setSpacing(2)
+
+        # Play button
+        self.play_button = QPushButton()
+
+        self.play_button.setIcon(
+            QIcon("app/assets/icons/play.svg")
+        )
+
+        self.play_button.setIconSize(
+            QSize(20, 20)
+        )
+
+        self.play_button.setFixedSize(
+            36, 36
+        )
+        self.play_button.clicked.connect(
+            self.play_audio
+        )
+        button_layout.addWidget(
+            self.play_button
+        )
+
+        # More button
+        self.more_button = QPushButton()
+
+        self.more_button.setIcon(
+            QIcon("app/assets/icons/More.svg")
+        )
+
+        self.more_button.setIconSize(
+            QSize(20, 20)
+        )
+
+        self.more_button.setFixedSize(
+            36, 36
+        )
+
+        button_layout.addWidget(
+            self.more_button
+        )
+
+        main_layout.addLayout(
+            button_layout,
+            0
+        )
+
+        layout.addLayout(
+            main_layout
+        )
+
+    def play_audio(self):
+
+        if not self.audio_path:
+            return
+
+        if not os.path.exists(
+            self.audio_path
+        ):
+            return
+
+        os.startfile(
+            os.path.abspath(
+                self.audio_path
+            )
+        )
 
 class HistoryPage(QWidget):
 
@@ -191,7 +193,6 @@ class HistoryPage(QWidget):
 
         self.history_entries = []
         self.history_file = "data/history.json"
-        self.load_history()
 
         main_layout = QVBoxLayout()
 
@@ -275,18 +276,22 @@ class HistoryPage(QWidget):
             self.scroll_area
         )
 
+        self.load_history()
+
     def add_history_entry(
         self,
         text,
         engine,
-        timestamp
+        timestamp,
+        audio_path
     ):
 
         self.history_entries.append(
             {
                 "text": text,
                 "engine": engine,
-                "timestamp": timestamp
+                "timestamp": timestamp,
+                "audio_path": audio_path
             }
         )
 
@@ -350,7 +355,8 @@ class HistoryPage(QWidget):
             card = HistoryCard(
                 entry["text"],
                 entry["engine"],
-                entry["timestamp"]
+                entry["timestamp"],
+                entry.get("audio_path", "")
             )
 
             self.history_layout.addWidget(
@@ -393,7 +399,8 @@ class HistoryPage(QWidget):
                 {
                     "text": entry["text"],
                     "engine": entry["engine"],
-                    "timestamp": entry["timestamp"].isoformat()
+                    "timestamp": entry["timestamp"].isoformat(),
+                    "audio_path": entry.get("audio_path", "")
                 }
             )
 
@@ -435,6 +442,11 @@ class HistoryPage(QWidget):
                 )
 
             self.history_entries = data
+
+            self.history_entries.sort(
+                key=lambda entry: entry["timestamp"],
+                reverse=True
+            )
 
             self.refresh_history()
 

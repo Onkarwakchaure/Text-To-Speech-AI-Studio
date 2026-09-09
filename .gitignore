@@ -8,6 +8,7 @@ __pycache__/
 
 # Output files
 output/
+data/
 
 # F5-TTS temporary testing folder
 F5_TTS/
