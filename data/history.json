@@ -1,5 +1,11 @@
 [
     {
+        "text": "Tell me what happens when you click.",
+        "engine": "XTTS v2",
+        "timestamp": "2026-09-09T22:01:23.901246",
+        "audio_path": "output/generated_20260909_220105_513149.wav"
+    },
+    {
         "text": "This is a longer test sentence for the history page.\nI want to see how the history card behaves when the generated text contains multiple lines.\nThe Play and More buttons should remain vertically centered.",
         "engine": "XTTS v2",
         "timestamp": "2026-09-09T20:48:39.871047",
@@ -30,9 +36,9 @@
         "audio_path": ""
     },
     {
-        "text": "Tell me what happens when you click.",
+        "text": "If it downloads correctly, tell me done.",
         "engine": "XTTS v2",
-        "timestamp": "2026-09-09T22:01:23.901246",
-        "audio_path": "output/generated_20260909_220105_513149.wav"
+        "timestamp": "2026-09-10T21:55:12.047671",
+        "audio_path": "output/generated_20260910_215438_271545.wav"
     }
 ]

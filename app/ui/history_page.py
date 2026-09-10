@@ -4,6 +4,7 @@ from datetime import datetime
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
+    QMenu,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFrame,
     QScrollArea,
+    QFileDialog
 )
 
 
@@ -157,6 +159,10 @@ class HistoryCard(QFrame):
             36, 36
         )
 
+        self.more_button.clicked.connect(
+            self.show_more_menu
+        )
+
         button_layout.addWidget(
             self.more_button
         )
@@ -186,10 +192,78 @@ class HistoryCard(QFrame):
             )
         )
 
+    def show_more_menu(self):
+
+        menu = QMenu(self)
+
+        download_action = menu.addAction(
+            "Download"
+        )
+
+        action = menu.exec(
+            self.more_button.mapToGlobal(
+                self.more_button.rect().bottomLeft()
+            )
+        )
+
+        if action == download_action:
+            self.download_audio()
+
+    def download_audio(self):
+
+        if not self.audio_path:
+            return
+
+        if not os.path.exists(
+            self.audio_path
+        ):
+            return
+
+        extension = os.path.splitext(
+            self.audio_path
+        )[1].lower()
+
+        if extension == ".mp3":
+            file_filter = "MP3 Files (*.mp3)"
+
+        elif extension == ".wav":
+            file_filter = "WAV Files (*.wav)"
+
+        else:
+            file_filter = "Audio Files (*.*)"
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Audio",
+            os.path.basename(
+                self.audio_path
+            ),
+            file_filter
+        )
+
+        if not file_path:
+            return
+
+        with open(
+            self.audio_path,
+            "rb"
+        ) as source:
+
+            with open(
+                file_path,
+                "wb"
+            ) as destination:
+
+                destination.write(
+                    source.read()
+                )
+                
 class HistoryPage(QWidget):
 
-    def __init__(self):
+    def __init__(self, export_audio_callback):
         super().__init__()
+
+        self.export_audio_callback = export_audio_callback
 
         self.history_entries = []
         self.history_file = "data/history.json"

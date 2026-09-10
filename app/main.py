@@ -74,7 +74,9 @@ class MainWindow(QMainWindow):
         self.tts_page.setLayout(left_layout)
 
         # History page
-        self.history_page = HistoryPage()
+        self.history_page = HistoryPage(
+            self.export_audio
+        )
 
         # Page stack
         self.page_stack = QStackedWidget()
@@ -1169,12 +1171,13 @@ class MainWindow(QMainWindow):
 
     def export_audio(
         self,
+        source_path,
         output_path,
         output_format
     ):
         try:
             audio = AudioSegment.from_file(
-                self.generated_audio_path
+                source_path
             )
 
             audio.export(
@@ -1219,8 +1222,10 @@ class MainWindow(QMainWindow):
             return
 
         self.export_audio(
-            file_path,
-            selected_format)
+        self.generated_audio_path,
+        file_path,
+        selected_format
+    )
         self.set_status("Audio saved successfully.")
         self.reset_status()
     
