@@ -23,12 +23,28 @@ class HistoryCard(QFrame):
         self,
         text,
         engine,
+        language,
+        voice_mode,
+        voice,
+        reference_audio,
+        f5_speed,
+        f5_reference_text,
+        f5_remove_silence,
         timestamp,
-        audio_path
+        audio_path,
+        download_callback
     ):
         super().__init__()
 
         self.audio_path = audio_path
+        self.language = language
+        self.voice_mode = voice_mode
+        self.voice = voice
+        self.reference_audio = reference_audio
+        self.f5_speed = f5_speed
+        self.f5_reference_text = f5_reference_text
+        self.f5_remove_silence = f5_remove_silence
+        self.download_callback = download_callback
         self.setObjectName("historyCard")
 
         self.setStyleSheet(
@@ -219,45 +235,10 @@ class HistoryCard(QFrame):
         ):
             return
 
-        extension = os.path.splitext(
+        self.download_callback(
             self.audio_path
-        )[1].lower()
-
-        if extension == ".mp3":
-            file_filter = "MP3 Files (*.mp3)"
-
-        elif extension == ".wav":
-            file_filter = "WAV Files (*.wav)"
-
-        else:
-            file_filter = "Audio Files (*.*)"
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Audio",
-            os.path.basename(
-                self.audio_path
-            ),
-            file_filter
         )
 
-        if not file_path:
-            return
-
-        with open(
-            self.audio_path,
-            "rb"
-        ) as source:
-
-            with open(
-                file_path,
-                "wb"
-            ) as destination:
-
-                destination.write(
-                    source.read()
-                )
-                
 class HistoryPage(QWidget):
 
     def __init__(self, export_audio_callback):
@@ -356,14 +337,28 @@ class HistoryPage(QWidget):
         self,
         text,
         engine,
+        language,
+        voice_mode,
+        voice,
+        reference_audio,
+        f5_speed,
+        f5_reference_text,
+        f5_remove_silence,
         timestamp,
         audio_path
     ):
-
+        
         self.history_entries.append(
             {
                 "text": text,
                 "engine": engine,
+                "language": language,
+                "voice_mode": voice_mode,
+                "voice": voice,
+                "reference_audio": reference_audio,
+                "f5_speed": f5_speed,
+                "f5_reference_text": f5_reference_text,
+                "f5_remove_silence": f5_remove_silence,
                 "timestamp": timestamp,
                 "audio_path": audio_path
             }
@@ -429,8 +424,16 @@ class HistoryPage(QWidget):
             card = HistoryCard(
                 entry["text"],
                 entry["engine"],
+                entry.get("language", ""),
+                entry.get("voice_mode", ""),
+                entry.get("voice", ""),
+                entry.get("reference_audio"),
+                entry.get("f5_speed", 1.0),
+                entry.get("f5_reference_text", ""),
+                entry.get("f5_remove_silence", False),
                 entry["timestamp"],
-                entry.get("audio_path", "")
+                entry.get("audio_path", ""),
+                self.export_audio_callback
             )
 
             self.history_layout.addWidget(
@@ -473,6 +476,19 @@ class HistoryPage(QWidget):
                 {
                     "text": entry["text"],
                     "engine": entry["engine"],
+                    "language": entry.get("language", ""),
+                    "voice_mode": entry.get("voice_mode", ""),
+                    "voice": entry.get("voice", ""),
+                    "reference_audio": entry.get("reference_audio"),
+                    "f5_speed": entry.get("f5_speed", 1.0),
+                    "f5_reference_text": entry.get(
+                        "f5_reference_text",
+                        ""
+                    ),
+                    "f5_remove_silence": entry.get(
+                        "f5_remove_silence",
+                        False
+                    ),
                     "timestamp": entry["timestamp"].isoformat(),
                     "audio_path": entry.get("audio_path", "")
                 }
@@ -508,6 +524,41 @@ class HistoryPage(QWidget):
                 data = json.load(file)
 
             for entry in data:
+
+                entry["language"] = entry.get(
+                    "language",
+                    ""
+                )
+
+                entry["voice_mode"] = entry.get(
+                    "voice_mode",
+                    ""
+                )
+
+                entry["voice"] = entry.get(
+                    "voice",
+                    ""
+                )
+
+                entry["reference_audio"] = entry.get(
+                    "reference_audio",
+                    None
+                )
+
+                entry["f5_speed"] = entry.get(
+                    "f5_speed",
+                    1.0
+                )
+
+                entry["f5_reference_text"] = entry.get(
+                    "f5_reference_text",
+                    ""
+                )
+
+                entry["f5_remove_silence"] = entry.get(
+                    "f5_remove_silence",
+                    False
+                )
 
                 entry["timestamp"] = (
                     datetime.fromisoformat(

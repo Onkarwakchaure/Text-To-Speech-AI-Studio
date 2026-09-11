@@ -75,7 +75,7 @@ class MainWindow(QMainWindow):
 
         # History page
         self.history_page = HistoryPage(
-            self.export_audio
+            self.download_history_audio
         )
 
         # Page stack
@@ -358,6 +358,7 @@ class MainWindow(QMainWindow):
         self.hide_download_button()
 
         self.generated_audio_path = None
+        self.last_save_directory = ""
         self.download_button.clicked.connect(self.download_audio)
 
         # UI Connections
@@ -1062,10 +1063,17 @@ class MainWindow(QMainWindow):
         self.history_page.add_history_entry(
             self.text_input.toPlainText(),
             self.engine_combo.currentText(),
+            self.language_combo.currentText(),
+            self.voice_combo.currentText(),
+            self.default_voice_combo.currentText(),
+            self.reference_audio_path,
+            self.f5_speed_spinbox.value(),
+            self.f5_reference_text.toPlainText().strip(),
+            self.f5_remove_silence.isChecked(),
             datetime.now(),
             self.generated_audio_path
         )
-            
+        
         self.show_audio_controls()
         self.show_download_button()
         self.set_status("Speech generated successfully.")
@@ -1214,12 +1222,19 @@ class MainWindow(QMainWindow):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Audio As",
-            default_name,
+            os.path.join(
+                self.last_save_directory,
+                default_name
+            ) if self.last_save_directory else default_name,
             file_filter
         )
 
         if not file_path:
             return
+
+        self.last_save_directory = os.path.dirname(
+            file_path
+        )
 
         self.export_audio(
         self.generated_audio_path,
@@ -1228,9 +1243,51 @@ class MainWindow(QMainWindow):
     )
         self.set_status("Audio saved successfully.")
         self.reset_status()
+
+    def download_history_audio(self, source_path):
+
+        selected_format = self.output_combo.currentText().lower()
+
+        default_name = f"generated_audio.{selected_format}"
+
+        file_filter = (
+            f"{selected_format.upper()} Files "
+            f"(*.{selected_format})"
+        )
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Audio As",
+            os.path.join(
+                self.last_save_directory,
+                default_name
+            ) if self.last_save_directory else default_name,
+            file_filter
+        )
+
+        if not file_path:
+            return
+
+        self.last_save_directory = os.path.dirname(
+            file_path
+        )
+        
+        self.export_audio(
+            source_path,
+            file_path,
+            selected_format
+        )
+
+        self.set_status("Audio saved successfully.")
+        self.reset_status()
     
     def load_settings(self):
 
+        self.last_save_directory = self.settings_manager.load(
+            "last_save_directory",
+            ""
+        )
+        
         self.engine_combo.setCurrentText(
             self.settings_manager.load(
                 "engine",
@@ -1307,6 +1364,11 @@ class MainWindow(QMainWindow):
         )
     
     def save_settings(self):
+
+        self.settings_manager.save(
+            "last_save_directory",
+            self.last_save_directory
+        )
 
         self.settings_manager.save(
             "engine",
