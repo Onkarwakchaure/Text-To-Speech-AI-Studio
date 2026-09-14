@@ -1,16 +1,16 @@
 [
     {
         "text": "Your existing Play and Download functionality should remain untouched.",
-        "engine": "XTTS v2",
+        "engine": "F5-TTS",
         "language": "English",
-        "voice_mode": "Default Voice",
+        "voice_mode": "Voice Cloning",
         "voice": "Ana Florence",
-        "reference_audio": null,
-        "f5_speed": 1.0,
+        "reference_audio": "C:\\Users\\Onkar\\TextToSpeechAIStudio\\voices\\Sonia.mp3",
+        "f5_speed": 0.8,
         "f5_reference_text": "The sun was setting slowly, casting long shadows across the empty field.",
-        "f5_remove_silence": true,
-        "timestamp": "2026-09-11T22:09:43.784492",
-        "audio_path": "output/generated_20260911_220907_957300.wav"
+        "f5_remove_silence": false,
+        "timestamp": "2026-09-11T22:20:59.487195",
+        "audio_path": "output/generated_20260911_221108_196298.wav"
     },
     {
         "text": "If all that works, we'll mark this feature finished.",
@@ -128,18 +128,5 @@
         "f5_remove_silence": false,
         "timestamp": "2026-09-08T22:14:23.232855",
         "audio_path": ""
-    },
-    {
-        "text": "Your existing Play and Download functionality should remain untouched.",
-        "engine": "F5-TTS",
-        "language": "English",
-        "voice_mode": "Voice Cloning",
-        "voice": "Ana Florence",
-        "reference_audio": "C:\\Users\\Onkar\\TextToSpeechAIStudio\\voices\\Sonia.mp3",
-        "f5_speed": 0.8,
-        "f5_reference_text": "The sun was setting slowly, casting long shadows across the empty field.",
-        "f5_remove_silence": false,
-        "timestamp": "2026-09-11T22:20:59.487195",
-        "audio_path": "output/generated_20260911_221108_196298.wav"
     }
 ]

@@ -1,10 +1,17 @@
 import json
 import os
 from datetime import datetime
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import (
+    Qt,
+    QSize,
+    QPropertyAnimation,
+    QEasingCurve,
+    QParallelAnimationGroup
+)
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QMenu,
+    QMessageBox,
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -13,7 +20,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QFrame,
     QScrollArea,
-    QFileDialog
+    QGraphicsOpacityEffect
 )
 
 
@@ -32,7 +39,9 @@ class HistoryCard(QFrame):
         f5_remove_silence,
         timestamp,
         audio_path,
-        download_callback
+        download_callback,
+        use_text_callback,
+        delete_callback
     ):
         super().__init__()
 
@@ -45,8 +54,14 @@ class HistoryCard(QFrame):
         self.f5_reference_text = f5_reference_text
         self.f5_remove_silence = f5_remove_silence
         self.download_callback = download_callback
+        self.use_text_callback = (use_text_callback)
+        self.text = text
+        self.timestamp = timestamp
+        self.delete_callback = (delete_callback)
         self.setObjectName("historyCard")
-
+        self.setCursor(
+            Qt.PointingHandCursor
+        )
         self.setStyleSheet(
             """
             QFrame#historyCard {
@@ -192,6 +207,164 @@ class HistoryCard(QFrame):
             main_layout
         )
 
+        # Details section
+        self.details_frame = QFrame()
+
+        self.details_frame.setVisible(
+            False
+        )
+
+        self.details_frame.setMaximumHeight(
+            0
+        )
+
+        self.details_opacity = (
+            QGraphicsOpacityEffect(
+                self.details_frame
+            )
+        )
+
+        self.details_opacity.setOpacity(
+            0
+        )
+
+        self.details_frame.setGraphicsEffect(
+            self.details_opacity
+        )
+
+        self.details_expanded = False
+
+        self.details_layout = QVBoxLayout()
+
+        self.details_layout.setContentsMargins(
+            0, 8, 0, 4
+        )
+
+        self.details_layout.setSpacing(
+            4
+        )
+
+        self.details_frame.setLayout(
+            self.details_layout
+        )
+
+        layout.addWidget(
+            self.details_frame
+        )
+
+        # Details content
+        self.add_detail_row(
+            "Engine",
+            engine
+        )
+
+        if engine == "XTTS v2":
+
+            self.add_detail_row(
+                "Language",
+                language
+            )
+
+            self.add_detail_row(
+                "Voice Mode",
+                voice_mode
+            )
+
+            self.add_detail_row(
+                "Voice",
+                voice
+            )
+
+        elif engine == "F5-TTS":
+
+            self.add_detail_row(
+                "Voice Mode",
+                voice_mode
+            )
+
+            if reference_audio:
+                self.add_detail_row(
+                    "Reference Audio",
+                    os.path.basename(
+                        reference_audio
+                    )
+                )
+
+            self.add_detail_row(
+                "Speed",
+                f"{f5_speed:.2f}"
+            )
+
+            self.add_detail_row(
+                "Reference Text",
+                f5_reference_text
+                if f5_reference_text
+                else "None"
+            )
+
+            self.add_detail_row(
+                "Remove Silence",
+                "Yes"
+                if f5_remove_silence
+                else "No"
+            )
+    def add_detail_row(
+        self,
+        label,
+        value
+    ):
+        row = QHBoxLayout()
+
+        row.setSpacing(8)
+
+        label_widget = QLabel(
+            label
+        )
+
+        label_widget.setStyleSheet(
+            """
+            color: #aaaaaa;
+            font-size: 12px;
+            """
+        )
+
+        value_widget = QLabel(
+            str(value)
+        )
+
+        value_widget.setWordWrap(
+            True
+        )
+
+        value_widget.setStyleSheet(
+            """
+            font-size: 12px;
+            """
+        )
+
+        row.addWidget(
+            label_widget
+        )
+
+        row.addWidget(
+            value_widget,
+            1
+        )
+
+        self.details_layout.addLayout(
+            row
+        )
+
+    def mousePressEvent(self, event):
+
+        if event.button() == Qt.LeftButton:
+
+            self.show_details()
+
+        super().mousePressEvent(
+            event
+        )
+
     def play_audio(self):
 
         if not self.audio_path:
@@ -209,12 +382,12 @@ class HistoryCard(QFrame):
         )
 
     def show_more_menu(self):
-
         menu = QMenu(self)
 
-        download_action = menu.addAction(
-            "Download"
-        )
+        download_action = menu.addAction("Download")
+        details_action = menu.addAction("Details")
+        use_text_action = menu.addAction("Use Text Again")
+        delete_action = menu.addAction("Delete")
 
         action = menu.exec(
             self.more_button.mapToGlobal(
@@ -224,6 +397,129 @@ class HistoryCard(QFrame):
 
         if action == download_action:
             self.download_audio()
+
+        elif action == details_action:
+            self.show_details()
+
+        elif action == use_text_action:
+            self.use_text_again()
+
+        elif action == delete_action:
+            self.delete_history()   
+
+    def show_details(self):
+
+        self.details_expanded = (
+            not self.details_expanded
+        )
+
+        if hasattr(
+            self,
+            "details_animation"
+        ):
+            self.details_animation.stop()
+
+        self.details_frame.setVisible(
+            True
+        )
+
+        start_height = (
+            self.details_frame.maximumHeight()
+        )
+
+        start_opacity = (
+            self.details_opacity.opacity()
+        )
+
+        if self.details_expanded:
+
+            end_height = (
+                self.details_frame.layout()
+                .sizeHint()
+                .height()
+            )
+
+            end_opacity = 1.0
+
+        else:
+
+            end_height = 0
+            end_opacity = 0.0
+
+        height_animation = (
+            QPropertyAnimation(
+                self.details_frame,
+                b"maximumHeight"
+            )
+        )
+
+        height_animation.setDuration(
+            500
+        )
+
+        height_animation.setStartValue(
+            start_height
+        )
+
+        height_animation.setEndValue(
+            end_height
+        )
+
+        height_animation.setEasingCurve(
+            QEasingCurve.OutCubic
+        )
+
+        opacity_animation = (
+            QPropertyAnimation(
+                self.details_opacity,
+                b"opacity"
+            )
+        )
+
+        opacity_animation.setDuration(
+            350
+        )
+
+        opacity_animation.setStartValue(
+            start_opacity
+        )
+
+        opacity_animation.setEndValue(
+            end_opacity
+        )
+
+        opacity_animation.setEasingCurve(
+            QEasingCurve.OutCubic
+        )
+
+        self.details_animation = (
+            QParallelAnimationGroup(
+                self
+            )
+        )
+
+        self.details_animation.addAnimation(
+            height_animation
+        )
+
+        self.details_animation.addAnimation(
+            opacity_animation
+        )
+
+        self.details_animation.finished.connect(
+            self.on_details_animation_finished
+        )
+
+        self.details_animation.start()
+
+
+    def on_details_animation_finished(self):
+
+        if not self.details_expanded:
+
+            self.details_frame.setVisible(
+                False
+            )
 
     def download_audio(self):
 
@@ -239,13 +535,97 @@ class HistoryCard(QFrame):
             self.audio_path
         )
 
+    def use_text_again(self):
+
+        self.use_text_callback(
+            self.text
+        )
+
+    def delete_history(self):
+
+        message_box = QMessageBox(
+            QMessageBox.Question,
+            "Delete History",
+            "Are you sure you want to delete this history entry?",
+            QMessageBox.Yes | QMessageBox.No,
+            self
+        )
+
+        yes_button = message_box.button(
+            QMessageBox.Yes
+        )
+
+        no_button = message_box.button(
+            QMessageBox.No
+        )
+
+        yes_button.setFixedSize(
+            80, 32
+        )
+
+        no_button.setFixedSize(
+            80, 32
+        )
+
+        yes_button.setStyleSheet(
+            """
+            QPushButton {
+                border: 1px solid rgba(255, 255, 255, 40);
+                border-radius: 6px;
+                background: transparent;
+            }
+
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 15);
+            }
+            """
+        )
+
+        no_button.setStyleSheet(
+            """
+            QPushButton {
+                border: 1px solid rgba(255, 255, 255, 40);
+                border-radius: 6px;
+                background: transparent;
+            }
+
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 15);
+            }
+            """
+        )
+
+        button_box = message_box.layout()
+
+        button_box.setAlignment(
+            Qt.AlignCenter
+        )
+
+        button_box.setSpacing(
+            12
+        )
+
+        result = message_box.exec()
+
+        if result == QMessageBox.Yes:
+
+            self.delete_callback(
+                self.timestamp
+            )
+
 class HistoryPage(QWidget):
 
-    def __init__(self, export_audio_callback):
+    def __init__(
+        self,
+        export_audio_callback,
+        use_text_callback
+    ):
         super().__init__()
 
         self.export_audio_callback = export_audio_callback
-
+        self.use_text_callback = (
+            use_text_callback
+        )
         self.history_entries = []
         self.history_file = "data/history.json"
 
@@ -433,7 +813,9 @@ class HistoryPage(QWidget):
                 entry.get("f5_remove_silence", False),
                 entry["timestamp"],
                 entry.get("audio_path", ""),
-                self.export_audio_callback
+                self.export_audio_callback,
+                self.use_text_callback,
+                self.delete_history_entry
             )
 
             self.history_layout.addWidget(
@@ -463,7 +845,7 @@ class HistoryPage(QWidget):
             " 0",
             " "
         )
-
+    
     def save_history(self):
 
         os.makedirs("data", exist_ok=True)
@@ -580,3 +962,18 @@ class HistoryPage(QWidget):
             print(
                 f"Could not load history: {e}"
             )
+
+    def delete_history_entry(
+        self,
+        timestamp
+    ):
+
+        self.history_entries = [
+            entry
+            for entry in self.history_entries
+            if entry["timestamp"] != timestamp
+        ]
+
+        self.save_history()
+
+        self.refresh_history()

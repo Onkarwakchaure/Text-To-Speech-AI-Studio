@@ -75,7 +75,8 @@ class MainWindow(QMainWindow):
 
         # History page
         self.history_page = HistoryPage(
-            self.download_history_audio
+            self.download_history_audio,
+            self.use_history_text
         )
 
         # Page stack
@@ -389,7 +390,7 @@ class MainWindow(QMainWindow):
             self.page_stack.setCurrentWidget(
                 self.history_page
             )
-
+    
     def toggle_sections(self):
 
         engine = self.engine_combo.currentText()
@@ -1280,6 +1281,16 @@ class MainWindow(QMainWindow):
 
         self.set_status("Audio saved successfully.")
         self.reset_status()
+
+    def use_history_text(self, text):
+
+        self.text_input.setPlainText(
+            text
+        )
+
+        self.change_page(
+            "generate"
+        )
     
     def load_settings(self):
 
