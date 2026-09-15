@@ -968,11 +968,64 @@ class HistoryPage(QWidget):
         timestamp
     ):
 
+        audio_path = None
+
+        for entry in self.history_entries:
+
+            if entry["timestamp"] == timestamp:
+
+                audio_path = entry.get(
+                    "audio_path",
+                    ""
+                )
+
+                print(
+                    f"Deleting audio file: {audio_path}"
+                )
+
+                break
+
         self.history_entries = [
             entry
             for entry in self.history_entries
             if entry["timestamp"] != timestamp
         ]
+
+        if audio_path:
+
+            print(
+                f"Deleting audio file: {audio_path}"
+            )
+
+            print(
+                f"File exists: {os.path.exists(audio_path)}"
+            )
+
+            if os.path.exists(
+                audio_path
+            ):
+
+                try:
+
+                    os.remove(
+                        audio_path
+                    )
+
+                    print(
+                        "Audio file deleted successfully."
+                    )
+
+                except Exception as e:
+
+                    print(
+                        f"Could not delete audio file: {e}"
+                    )
+
+            else:
+
+                print(
+                    "Audio file does not exist."
+                )
 
         self.save_history()
 

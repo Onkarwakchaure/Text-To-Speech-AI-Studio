@@ -1,18 +1,5 @@
 [
     {
-        "text": "Your existing Play and Download functionality should remain untouched.",
-        "engine": "F5-TTS",
-        "language": "English",
-        "voice_mode": "Voice Cloning",
-        "voice": "Ana Florence",
-        "reference_audio": "C:\\Users\\Onkar\\TextToSpeechAIStudio\\voices\\Sonia.mp3",
-        "f5_speed": 0.8,
-        "f5_reference_text": "The sun was setting slowly, casting long shadows across the empty field.",
-        "f5_remove_silence": false,
-        "timestamp": "2026-09-11T22:20:59.487195",
-        "audio_path": "output/generated_20260911_221108_196298.wav"
-    },
-    {
         "text": "If all that works, we'll mark this feature finished.",
         "engine": "XTTS v2",
         "language": "",
