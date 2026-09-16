@@ -76,7 +76,8 @@ class MainWindow(QMainWindow):
         # History page
         self.history_page = HistoryPage(
             self.download_history_audio,
-            self.use_history_text
+            self.use_history_text,
+            self.release_history_audio
         )
 
         # Page stack
@@ -390,6 +391,32 @@ class MainWindow(QMainWindow):
             self.page_stack.setCurrentWidget(
                 self.history_page
             )
+
+    def release_history_audio(
+        self,
+        audio_path
+    ):
+
+        if not self.generated_audio_path:
+            return
+
+        if os.path.abspath(
+            audio_path
+        ) != os.path.abspath(
+            self.generated_audio_path
+        ):
+            return
+
+        self.player.stop()
+
+        self.player.setSource(
+            QUrl()
+        )
+
+        self.generated_audio_path = None
+
+        self.hide_audio_controls()
+        self.hide_download_button()
     
     def toggle_sections(self):
 

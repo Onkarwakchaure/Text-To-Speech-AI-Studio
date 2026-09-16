@@ -618,13 +618,17 @@ class HistoryPage(QWidget):
     def __init__(
         self,
         export_audio_callback,
-        use_text_callback
+        use_text_callback,
+        release_audio_callback
     ):
         super().__init__()
 
         self.export_audio_callback = export_audio_callback
         self.use_text_callback = (
             use_text_callback
+        )
+        self.release_audio_callback = (
+            release_audio_callback
         )
         self.history_entries = []
         self.history_file = "data/history.json"
@@ -979,27 +983,16 @@ class HistoryPage(QWidget):
                     ""
                 )
 
-                print(
-                    f"Deleting audio file: {audio_path}"
-                )
-
                 break
-
-        self.history_entries = [
-            entry
-            for entry in self.history_entries
-            if entry["timestamp"] != timestamp
-        ]
 
         if audio_path:
 
-            print(
-                f"Deleting audio file: {audio_path}"
+            self.release_audio_callback(
+                audio_path
             )
-
-            print(
-                f"File exists: {os.path.exists(audio_path)}"
-            )
+            
+        # Delete audio file first
+        if audio_path:
 
             if os.path.exists(
                 audio_path
@@ -1011,21 +1004,32 @@ class HistoryPage(QWidget):
                         audio_path
                     )
 
-                    print(
-                        "Audio file deleted successfully."
-                    )
-
                 except Exception as e:
+
+                    QMessageBox.warning(
+                        self,
+                        "Could Not Delete Audio",
+                        "The audio file is currently "
+                        "being used by another "
+                        "application.\n\n"
+                        "Please close the audio player "
+                        "and try deleting this history "
+                        "entry again."
+                    )
 
                     print(
                         f"Could not delete audio file: {e}"
                     )
 
-            else:
+                    return
 
-                print(
-                    "Audio file does not exist."
-                )
+        # Remove history entry only after
+        # audio deletion succeeds
+        self.history_entries = [
+            entry
+            for entry in self.history_entries
+            if entry["timestamp"] != timestamp
+        ]
 
         self.save_history()
 
