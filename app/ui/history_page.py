@@ -1,5 +1,7 @@
 import json
 import os
+import re
+from html import escape
 from datetime import datetime
 from PySide6.QtCore import (
     Qt,
@@ -41,7 +43,8 @@ class HistoryCard(QFrame):
         audio_path,
         download_callback,
         use_text_callback,
-        delete_callback
+        delete_callback,
+        search_text=""
     ):
         super().__init__()
 
@@ -116,6 +119,10 @@ class HistoryCard(QFrame):
 
         self.text_label.setWordWrap(True)
 
+        self.set_highlighted_text(
+            text,
+            search_text
+        )
         self.text_label.setStyleSheet(
             "font-size: 14px;"
         )
@@ -308,6 +315,46 @@ class HistoryCard(QFrame):
                 if f5_remove_silence
                 else "No"
             )
+
+    def set_highlighted_text(
+        self,
+        text,
+        search_text
+    ):
+
+        if not search_text:
+
+            self.text_label.setText(
+                escape(text)
+            )
+
+            return
+
+        escaped_text = escape(text)
+        escaped_search = escape(search_text)
+
+        pattern = re.escape(
+            escaped_search
+        )
+
+        highlighted_text = re.sub(
+            pattern,
+            lambda match:
+                f'<span style="'
+                f'background-color: rgba(255, 193, 7, 90); '
+                f'color: white; '
+                f'border-radius: 3px; '
+                f'padding: 1px 2px;">'
+                f'{match.group(0)}'
+                f'</span>',
+            escaped_text,
+            flags=re.IGNORECASE
+        )
+
+        self.text_label.setText(
+            highlighted_text
+        )
+    
     def add_detail_row(
         self,
         label,
@@ -666,8 +713,51 @@ class HistoryPage(QWidget):
             "Search history..."
         )
 
+        self.search_input.textChanged.connect(
+            self.search_history
+        )
+        
         main_layout.addWidget(
             self.search_input
+        )
+
+        # Clear All History
+        self.clear_history_button = QPushButton(
+            "Clear All History"
+        )
+
+        self.clear_history_button.setFixedSize(
+            100, 28
+        )
+
+        self.clear_history_button.setStyleSheet(
+            """
+            QPushButton {
+                border: 1px solid rgba(255, 255, 255, 40);
+                border-radius: 6px;
+                background: transparent;
+            }
+
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 15);
+            }
+            """
+        )
+
+        self.clear_history_button.clicked.connect(
+            self.clear_all_history
+        )
+
+        clear_button_layout = QHBoxLayout()
+
+        clear_button_layout.addStretch()
+
+        clear_button_layout.addWidget(
+            self.clear_history_button
+        )
+
+        main_layout.addLayout(
+            clear_button_layout
         )
 
         # Scroll area
@@ -757,7 +847,32 @@ class HistoryPage(QWidget):
 
         self.refresh_history()
 
-    def refresh_history(self):
+    def search_history(self, text):
+
+        search_text = text.strip().lower()
+
+        if not search_text:
+
+            self.refresh_history()
+
+            return
+
+        filtered_entries = [
+            entry
+            for entry in self.history_entries
+            if search_text in entry["text"].lower()
+        ]
+
+        self.refresh_history(
+            filtered_entries
+        )
+        
+    def refresh_history(
+            self,
+            entries=None):
+
+        if entries is None:
+            entries = self.history_entries
 
         # Remove existing widgets
         while self.history_layout.count():
@@ -771,8 +886,10 @@ class HistoryPage(QWidget):
 
         current_date = None
 
+        search_text = self.search_input.text().strip()
+
         for index, entry in enumerate(
-            self.history_entries
+            entries
         ):
 
             timestamp = entry["timestamp"]
@@ -819,7 +936,8 @@ class HistoryPage(QWidget):
                 entry.get("audio_path", ""),
                 self.export_audio_callback,
                 self.use_text_callback,
-                self.delete_history_entry
+                self.delete_history_entry,
+                search_text
             )
 
             self.history_layout.addWidget(
@@ -990,7 +1108,7 @@ class HistoryPage(QWidget):
             self.release_audio_callback(
                 audio_path
             )
-            
+
         # Delete audio file first
         if audio_path:
 
@@ -1034,3 +1152,131 @@ class HistoryPage(QWidget):
         self.save_history()
 
         self.refresh_history()
+
+    def clear_all_history(self):
+
+        if not self.history_entries:
+            return
+
+        message_box = QMessageBox(
+            QMessageBox.Question,
+            "Clear All History",
+            "Are you sure you want to clear all history?\n\n"
+            "This will delete all history entries and "
+            "their generated audio files.",
+            QMessageBox.Yes | QMessageBox.No,
+            self
+        )
+
+        yes_button = message_box.button(
+            QMessageBox.Yes
+        )
+
+        no_button = message_box.button(
+            QMessageBox.No
+        )
+
+        yes_button.setFixedSize(
+            80, 32
+        )
+
+        no_button.setFixedSize(
+            80, 32
+        )
+
+        yes_button.setStyleSheet(
+            """
+            QPushButton {
+                border: 1px solid rgba(255, 255, 255, 40);
+                border-radius: 6px;
+                background: transparent;
+            }
+
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 15);
+            }
+            """
+        )
+
+        no_button.setStyleSheet(
+            """
+            QPushButton {
+                border: 1px solid rgba(255, 255, 255, 40);
+                border-radius: 6px;
+                background: transparent;
+            }
+
+            QPushButton:hover {
+                background: rgba(255, 255, 255, 15);
+            }
+            """
+        )
+
+        button_box = message_box.layout()
+
+        button_box.setAlignment(
+            Qt.AlignCenter
+        )
+
+        button_box.setSpacing(
+            12
+        )
+
+        result = message_box.exec()
+
+        if result != QMessageBox.Yes:
+            return
+
+        remaining_entries = []
+
+        for entry in self.history_entries:
+
+            audio_path = entry.get(
+                "audio_path",
+                ""
+            )
+
+            if audio_path:
+
+                self.release_audio_callback(
+                    audio_path
+                )
+
+                if os.path.exists(
+                    audio_path
+                ):
+
+                    try:
+
+                        os.remove(
+                            audio_path
+                        )
+
+                    except Exception as e:
+
+                        remaining_entries.append(
+                            entry
+                        )
+
+                        print(
+                            f"Could not delete audio file: {e}"
+                        )
+
+        self.history_entries = (
+            remaining_entries
+        )
+
+        self.save_history()
+
+        self.refresh_history()
+
+        if remaining_entries:
+
+            QMessageBox.warning(
+                self,
+                "Some Files Could Not Be Deleted",
+                "Some audio files could not be deleted "
+                "because they are currently being used "
+                "by another application.\n\n"
+                "Their history entries were kept."
+            )
