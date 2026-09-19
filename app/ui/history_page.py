@@ -324,8 +324,12 @@ class HistoryCard(QFrame):
 
         if not search_text:
 
+            self.text_label.setTextFormat(
+                Qt.PlainText
+            )
+
             self.text_label.setText(
-                escape(text)
+                text
             )
 
             return
@@ -349,6 +353,10 @@ class HistoryCard(QFrame):
                 f'</span>',
             escaped_text,
             flags=re.IGNORECASE
+        )
+
+        self.text_label.setTextFormat(
+            Qt.RichText
         )
 
         self.text_label.setText(
@@ -883,6 +891,68 @@ class HistoryPage(QWidget):
 
             if widget is not None:
                 widget.deleteLater()
+
+        if not entries:
+
+            if self.history_entries:
+
+                title_text = "No results found"
+
+                message_text = (
+                    "Try searching for something else."
+                )
+
+            else:
+
+                title_text = "No history yet"
+
+                message_text = (
+                    "Generate some speech to see it appear here."
+                )
+
+            empty_title = QLabel(
+                title_text
+            )
+
+            empty_title.setAlignment(
+                Qt.AlignCenter
+            )
+
+            empty_title.setStyleSheet(
+                """
+                font-size: 16px;
+                font-weight: bold;
+                color: #dddddd;
+                padding-top: 80px;
+                """
+            )
+
+            empty_message = QLabel(
+                message_text
+            )
+
+            empty_message.setAlignment(
+                Qt.AlignCenter
+            )
+
+            empty_message.setStyleSheet(
+                """
+                font-size: 13px;
+                color: #888888;
+                """
+            )
+
+            self.history_layout.addWidget(
+                empty_title
+            )
+
+            self.history_layout.addWidget(
+                empty_message
+            )
+
+            self.history_layout.addStretch()
+
+            return
 
         current_date = None
 

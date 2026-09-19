@@ -1,15 +1,41 @@
 [
     {
-        "text": "Hey Whats up!",
+        "text": "If those are already covered, then History is essentially finished and we can commit all the History work together.",
         "engine": "XTTS v2",
         "language": "English",
         "voice_mode": "Default Voice",
-        "voice": "Tammy Grit",
+        "voice": "Kumar Dahl",
         "reference_audio": null,
         "f5_speed": 0.8,
         "f5_reference_text": "The sun was setting slowly, casting long shadows across the empty field.",
         "f5_remove_silence": false,
-        "timestamp": "2026-09-17T02:16:02.998340",
-        "audio_path": "output/generated_20260917_021546_812865.wav"
+        "timestamp": "2026-09-19T21:45:42.740982",
+        "audio_path": "output/generated_20260919_214447_708738.wav"
+    },
+    {
+        "text": "Before adding another feature, I'd do one final History edge-case pass:",
+        "engine": "XTTS v2",
+        "language": "English",
+        "voice_mode": "Default Voice",
+        "voice": "Gracie Wise",
+        "reference_audio": null,
+        "f5_speed": 0.8,
+        "f5_reference_text": "The sun was setting slowly, casting long shadows across the empty field.",
+        "f5_remove_silence": false,
+        "timestamp": "2026-09-19T21:44:21.250332",
+        "audio_path": "output/generated_20260919_214342_953667.wav"
+    },
+    {
+        "text": "I think we're at a good point to review History as a whole.",
+        "engine": "XTTS v2",
+        "language": "English",
+        "voice_mode": "Default Voice",
+        "voice": "Gracie Wise",
+        "reference_audio": null,
+        "f5_speed": 0.8,
+        "f5_reference_text": "The sun was setting slowly, casting long shadows across the empty field.",
+        "f5_remove_silence": false,
+        "timestamp": "2026-09-19T21:43:06.003635",
+        "audio_path": "output/generated_20260919_214232_506188.wav"
     }
 ]
