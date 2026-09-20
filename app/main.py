@@ -1,5 +1,6 @@
 import os, sys
-from PySide6.QtCore import Qt, QUrl, QTime, QTimer, QThread
+from PySide6.QtCore import QSize, Qt, QUrl, QTime, QTimer, QThread
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -110,18 +111,114 @@ class MainWindow(QMainWindow):
         )
 
         ## Text Input Section
+        self.text_zoom = 70
         self.text_input = QTextEdit()
         self.text_input.setPlaceholderText("Type your text here...")
         left_layout.addWidget(self.text_input)
 
-         # Character Count
-        self.character_label = QLabel("0 characters")
-        left_layout.addWidget(self.character_label) 
+        # Text Editing Toolbar
+        edit_layout = QHBoxLayout()
+        edit_layout.setContentsMargins(0, 0, 0, 0)
+        edit_layout.setSpacing(6)
 
-        self.text_input.textChanged.connect(
-        self.update_character_count
+        # Decrease Text Size
+        self.text_decrease_button = QPushButton()
+        self.text_decrease_button.setIcon(
+            QIcon("app/assets/icons/text_decrease.svg")
+        )
+        self.text_decrease_button.setIconSize(
+            QSize(18, 18)
+        )
+        self.text_decrease_button.setFixedSize(
+            32, 32
+        )
+        self.text_decrease_button.setToolTip(
+            "Decrease text size"
         )
 
+        # Text Size
+        self.text_size_label = QLabel("100%")
+        self.text_size_label.setAlignment(
+            Qt.AlignCenter
+        )
+        self.text_size_label.setFixedWidth(35)
+
+        # Increase Text Size
+        self.text_increase_button = QPushButton()
+        self.text_increase_button.setIcon(
+            QIcon("app/assets/icons/text_increase.svg")
+        )
+        self.text_increase_button.setIconSize(
+            QSize(18, 18)
+        )
+        self.text_increase_button.setFixedSize(
+            32, 32
+        )
+        self.text_increase_button.setToolTip(
+            "Increase text size"
+        )
+
+        # Clear All Formatting
+        self.clear_formatting_button = QPushButton()
+        self.clear_formatting_button.setIcon(
+            QIcon("app/assets/icons/clear_all_formatting.svg")
+        )
+        self.clear_formatting_button.setIconSize(
+            QSize(18, 18)
+        )
+        self.clear_formatting_button.setFixedSize(
+            32, 32
+        )
+        self.clear_formatting_button.setToolTip(
+            "Clear all formatting"
+        )
+
+        # Character Count
+        self.character_label = QLabel("0 characters")
+
+        # Add editing controls
+        edit_layout.addWidget(
+            self.text_decrease_button
+        )
+
+        edit_layout.addWidget(
+            self.text_size_label
+        )
+
+        edit_layout.addWidget(
+            self.text_increase_button
+        )
+
+        edit_layout.addWidget(
+            self.clear_formatting_button
+        )
+
+        edit_layout.addStretch()
+
+        edit_layout.addWidget(
+            self.character_label
+        )
+
+        left_layout.addLayout(
+            edit_layout
+        )
+
+        self.text_input.textChanged.connect(
+            self.update_character_count
+        )
+
+        self.text_decrease_button.clicked.connect(
+            self.decrease_text_size
+        )
+
+        self.text_increase_button.clicked.connect(
+            self.increase_text_size
+        )
+
+        self.clear_formatting_button.clicked.connect(
+            self.clear_all_formatting
+        )
+        
         # Generate Button
         self.generate_button = QPushButton(
             "🎙 GENERATE SPEECH"
@@ -378,6 +475,39 @@ class MainWindow(QMainWindow):
 
     ''' Methods for MainWindow class '''
 
+    def increase_text_size(self):
+
+        if self.text_zoom >= 200:
+            return
+
+        self.text_zoom += 10
+        self.update_text_size()
+
+    def decrease_text_size(self):
+
+        if self.text_zoom <= 70:
+            return
+
+        self.text_zoom -= 10
+        self.update_text_size()
+
+    def update_text_size(self):
+
+        base_size = 14
+
+        new_size = round(
+            base_size * self.text_zoom / 100
+        )
+
+        font = self.text_input.font()
+        font.setPointSize(new_size)
+
+        self.text_input.setFont(font)
+
+        self.text_size_label.setText(
+            f"{self.text_zoom}%"
+        )
+
     def change_page(self, page):
 
         if page == "generate":
@@ -516,6 +646,27 @@ class MainWindow(QMainWindow):
         text = self.text_input.toPlainText()
         count = len(text)
         self.character_label.setText(f"{count} characters")
+
+    def clear_all_formatting(self):
+
+        text = self.text_input.toPlainText()
+
+        if not text:
+            return
+
+        cursor_position = self.text_input.textCursor().position()
+
+        self.text_input.setPlainText(text)
+
+        cursor = self.text_input.textCursor()
+        cursor.setPosition(
+            min(
+                cursor_position,
+                len(text)
+            )
+        )
+
+        self.text_input.setTextCursor(cursor)
 
     def select_audio_file(self):
 
