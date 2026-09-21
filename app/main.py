@@ -1,6 +1,10 @@
 import os, sys
 from PySide6.QtCore import QSize, Qt, QUrl, QTime, QTimer, QThread
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import (
+    QIcon,
+    QTextCursor,
+    QTextCharFormat
+)
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -137,7 +141,9 @@ class MainWindow(QMainWindow):
         )
 
         # Text Size
-        self.text_size_label = QLabel("100%")
+        self.text_size_label = QLabel(
+            f"{self.text_zoom}%"
+        )
         self.text_size_label.setAlignment(
             Qt.AlignCenter
         )
@@ -218,6 +224,8 @@ class MainWindow(QMainWindow):
         self.clear_formatting_button.clicked.connect(
             self.clear_all_formatting
         )
+
+        self.update_text_size()
         
         # Generate Button
         self.generate_button = QPushButton(
@@ -656,9 +664,34 @@ class MainWindow(QMainWindow):
 
         cursor_position = self.text_input.textCursor().position()
 
+        # Replace the document with plain text
         self.text_input.setPlainText(text)
 
+        # Select the entire document
+        cursor = QTextCursor(
+            self.text_input.document()
+        )
+
+        cursor.select(
+            QTextCursor.Document
+        )
+
+        # Apply a completely empty character format
+        clean_format = QTextCharFormat()
+
+        cursor.setCharFormat(
+            clean_format
+        )
+
+        # Clear any formatting that would
+        # continue when typing
+        self.text_input.setCurrentCharFormat(
+            QTextCharFormat()
+        )
+
+        # Restore cursor position
         cursor = self.text_input.textCursor()
+
         cursor.setPosition(
             min(
                 cursor_position,
@@ -666,8 +699,10 @@ class MainWindow(QMainWindow):
             )
         )
 
-        self.text_input.setTextCursor(cursor)
-
+        self.text_input.setTextCursor(
+            cursor
+        )
+    
     def select_audio_file(self):
 
         file_path, _ = QFileDialog.getOpenFileName(
