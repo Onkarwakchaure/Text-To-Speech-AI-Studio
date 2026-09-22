@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
         self.text_input.setPlaceholderText("Type your text here...")
         left_layout.addWidget(self.text_input)
 
-        # Text Editing Toolbar
+        ## Text Editing Toolbar
         edit_layout = QHBoxLayout()
         edit_layout.setContentsMargins(0, 0, 0, 0)
         edit_layout.setSpacing(6)
@@ -164,6 +164,36 @@ class MainWindow(QMainWindow):
             "Increase text size"
         )
 
+        # Undo
+        self.undo_button = QPushButton()
+        self.undo_button.setIcon(
+            QIcon("app/assets/icons/undo.svg")
+        )
+        self.undo_button.setIconSize(
+            QSize(18, 18)
+        )
+        self.undo_button.setFixedSize(
+            32, 32
+        )
+        self.undo_button.setToolTip(
+            "Undo"
+        )
+
+        # Redo
+        self.redo_button = QPushButton()
+        self.redo_button.setIcon(
+            QIcon("app/assets/icons/redo.svg")
+        )
+        self.redo_button.setIconSize(
+            QSize(18, 18)
+        )
+        self.redo_button.setFixedSize(
+            32, 32
+        )
+        self.redo_button.setToolTip(
+            "Redo"
+        )
+
         # Clear All Formatting
         self.clear_formatting_button = QPushButton()
         self.clear_formatting_button.setIcon(
@@ -177,6 +207,21 @@ class MainWindow(QMainWindow):
         )
         self.clear_formatting_button.setToolTip(
             "Clear all formatting"
+        )
+
+        # Clear All Text
+        self.clear_text_button = QPushButton()
+        self.clear_text_button.setIcon(
+            QIcon("app/assets/icons/clear_all_.svg")
+        )
+        self.clear_text_button.setIconSize(
+            QSize(18, 18)
+        )
+        self.clear_text_button.setFixedSize(
+            32, 32
+        )
+        self.clear_text_button.setToolTip(
+            "Clear all text"
         )
 
         # Character Count
@@ -196,7 +241,19 @@ class MainWindow(QMainWindow):
         )
 
         edit_layout.addWidget(
+            self.undo_button
+        )
+
+        edit_layout.addWidget(
+            self.redo_button
+        )
+
+        edit_layout.addWidget(
             self.clear_formatting_button
+        )
+
+        edit_layout.addWidget(
+            self.clear_text_button
         )
 
         edit_layout.addStretch()
@@ -221,8 +278,36 @@ class MainWindow(QMainWindow):
             self.increase_text_size
         )
 
+        self.undo_button.clicked.connect(
+            self.text_input.undo
+        )
+
+        self.redo_button.clicked.connect(
+            self.text_input.redo
+        )
+
+        self.text_input.undoAvailable.connect(
+            self.undo_button.setEnabled
+        )
+
+        self.text_input.redoAvailable.connect(
+            self.redo_button.setEnabled
+        )
+
+        self.undo_button.setEnabled(
+            self.text_input.document().isUndoAvailable()
+        )
+
+        self.redo_button.setEnabled(
+            self.text_input.document().isRedoAvailable()
+        )
+
         self.clear_formatting_button.clicked.connect(
             self.clear_all_formatting
+        )
+
+        self.clear_text_button.clicked.connect(
+            self.clear_all_text
         )
 
         self.update_text_size()
@@ -702,6 +787,29 @@ class MainWindow(QMainWindow):
         self.text_input.setTextCursor(
             cursor
         )
+
+    def clear_all_text(self):
+
+        if not self.text_input.toPlainText():
+            return
+
+        reply = QMessageBox.question(
+            self,
+            "Clear Text",
+            "Are you sure you want to clear all text?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if reply != QMessageBox.Yes:
+            return
+
+        cursor = self.text_input.textCursor()
+
+        cursor.select(QTextCursor.Document)
+        cursor.removeSelectedText()
+
+        self.text_input.setTextCursor(cursor)
     
     def select_audio_file(self):
 
