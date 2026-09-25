@@ -3,7 +3,8 @@ from PySide6.QtCore import QSize, Qt, QUrl, QTime, QTimer, QThread
 from PySide6.QtGui import (
     QIcon,
     QTextCursor,
-    QTextCharFormat
+    QTextCharFormat,
+    QTextBlockFormat
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -747,36 +748,30 @@ class MainWindow(QMainWindow):
         if not text:
             return
 
-        cursor_position = self.text_input.textCursor().position()
-
-        # Replace the document with plain text
-        self.text_input.setPlainText(text)
+        cursor = self.text_input.textCursor()
+        cursor_position = cursor.position()
 
         # Select the entire document
-        cursor = QTextCursor(
-            self.text_input.document()
-        )
+        cursor.select(QTextCursor.Document)
 
-        cursor.select(
-            QTextCursor.Document
-        )
+        # Group all formatting changes into one undo action
+        cursor.beginEditBlock()
 
-        # Apply a completely empty character format
-        clean_format = QTextCharFormat()
+        # Clear character formatting
+        cursor.setCharFormat(QTextCharFormat())
 
-        cursor.setCharFormat(
-            clean_format
-        )
+        # Clear paragraph formatting
+        cursor.setBlockFormat(QTextBlockFormat())
 
-        # Clear any formatting that would
-        # continue when typing
+        cursor.endEditBlock()
+
+        # Clear formatting for future typing
         self.text_input.setCurrentCharFormat(
             QTextCharFormat()
         )
 
         # Restore cursor position
-        cursor = self.text_input.textCursor()
-
+        cursor.clearSelection()
         cursor.setPosition(
             min(
                 cursor_position,
@@ -784,10 +779,8 @@ class MainWindow(QMainWindow):
             )
         )
 
-        self.text_input.setTextCursor(
-            cursor
-        )
-
+        self.text_input.setTextCursor(cursor)
+    
     def clear_all_text(self):
 
         if not self.text_input.toPlainText():
