@@ -9,6 +9,10 @@ __pycache__/
 # Output files
 output/
 data/
+*.wav
+*.mp3
+*.flac
+*.ogg
 
 # F5-TTS temporary testing folder
 F5_TTS/
@@ -22,3 +26,8 @@ F5_TTS/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Python / Tool Cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

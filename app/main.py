@@ -38,6 +38,8 @@ from utils.voice_manager import VoiceManager
 from ui.voice_combo_box import VoiceComboBox
 from ui.sidebar import Sidebar
 from ui.history_page import HistoryPage
+from workers.llm_worker import LLMWorker
+from utils.llama_server_manager import LlamaServerManager
 from datetime import datetime
 
 class MainWindow(QMainWindow):
@@ -50,10 +52,26 @@ class MainWindow(QMainWindow):
 
         # Initialize Voice Manager
         self.voice_manager = VoiceManager()
-        
+
+        self.is_generating = False
+        self.is_playing = False
+
+        # Llama server
+        self.llama_server = LlamaServerManager(self)
+        self.llama_server.started.connect(
+            self.on_llama_server_started
+        )
+        self.llama_server.failed.connect(
+            self.on_llama_server_failed
+        )
+
         # voice mode state variables
         self.xtts_voice_mode = "Default Voice"
         self.f5_forced_voice_mode = False
+
+        # AI Normalize state
+        self.llm_thread = None
+        self.llm_worker = None
 
         ## Window Settings
         self.setWindowTitle("Text-To-Speech AI Studio")
@@ -210,6 +228,21 @@ class MainWindow(QMainWindow):
             "Clear all formatting"
         )
 
+        # AI Normalize
+        self.ai_normalize_button = QPushButton()
+        self.ai_normalize_button.setIcon(
+            QIcon("app/assets/icons/wand.svg")
+        )
+        self.ai_normalize_button.setIconSize(
+            QSize(18, 18)
+        )
+        self.ai_normalize_button.setFixedSize(
+            32, 32
+        )
+        self.ai_normalize_button.setToolTip(
+            "Normalize Text"
+        )
+
         # Clear All Text
         self.clear_text_button = QPushButton()
         self.clear_text_button.setIcon(
@@ -252,7 +285,10 @@ class MainWindow(QMainWindow):
         edit_layout.addWidget(
             self.clear_formatting_button
         )
-
+        edit_layout.addWidget(
+            self.ai_normalize_button
+            )
+        
         edit_layout.addWidget(
             self.clear_text_button
         )
@@ -305,6 +341,10 @@ class MainWindow(QMainWindow):
 
         self.clear_formatting_button.clicked.connect(
             self.clear_all_formatting
+        )
+
+        self.ai_normalize_button.clicked.connect(
+            self.normalize_text_with_ai
         )
 
         self.clear_text_button.clicked.connect(
@@ -566,6 +606,7 @@ class MainWindow(QMainWindow):
         self.load_settings()
         self.load_saved_voices()
         self.toggle_sections()
+        self.llama_server.start()
 
     ''' Methods for MainWindow class '''
 
@@ -780,7 +821,160 @@ class MainWindow(QMainWindow):
         )
 
         self.text_input.setTextCursor(cursor)
-    
+
+    def normalize_text_with_ai(self):
+        text = self.text_input.toPlainText().strip()
+
+        if not text:
+            QMessageBox.warning(
+                self,
+                "No Text",
+                "Please enter some text before using AI Normalize."
+            )
+            return
+
+        # Prevent starting another AI request
+        if self.llm_thread is not None and self.llm_thread.isRunning():
+            return
+
+        self.statusBar().showMessage(
+            "AI is normalizing your text..."
+        )
+
+        # Disable controls while AI is working
+        self.generate_button.setEnabled(False)
+        self.ai_normalize_button.setEnabled(False)
+        self.text_input.setEnabled(False)
+
+        self.text_decrease_button.setEnabled(False)
+        self.text_increase_button.setEnabled(False)
+        self.undo_button.setEnabled(False)
+        self.redo_button.setEnabled(False)
+        self.clear_formatting_button.setEnabled(False)
+        self.clear_text_button.setEnabled(False)
+
+        # Create thread
+        self.llm_thread = QThread()
+        self.llm_worker = LLMWorker(text)
+
+        self.llm_worker.moveToThread(self.llm_thread)
+
+        # Worker execution
+        self.llm_thread.started.connect(
+            self.llm_worker.run
+        )
+
+        # Results
+        self.llm_worker.finished.connect(
+            self.on_ai_normalization_finished
+        )
+
+        self.llm_worker.error.connect(
+            self.on_ai_normalization_error
+        )
+
+        # Cleanup
+        self.llm_worker.finished.connect(
+            self.llm_thread.quit
+        )
+
+        self.llm_worker.error.connect(
+            self.llm_thread.quit
+        )
+
+        self.llm_worker.finished.connect(
+            self.llm_worker.deleteLater
+        )
+
+        self.llm_worker.error.connect(
+            self.llm_worker.deleteLater
+        )
+
+        self.llm_thread.finished.connect(
+            self.llm_thread.deleteLater
+        )
+
+        self.llm_thread.finished.connect(
+            self._clear_llm_references
+        )
+
+        self.llm_thread.start()
+
+    def on_ai_normalization_finished(self, normalized_text):
+        original_text = self.text_input.toPlainText()
+
+        if normalized_text == original_text:
+            self.statusBar().showMessage(
+                "AI found no changes."
+            )
+        else:
+            cursor = self.text_input.textCursor()
+
+            # Remember cursor position
+            old_position = cursor.position()
+
+            # Replace the entire document as ONE undoable edit
+            cursor.beginEditBlock()
+
+            cursor.select(QTextCursor.Document)
+            cursor.insertText(normalized_text)
+
+            cursor.endEditBlock()
+
+            # Restore a reasonable cursor position
+            new_position = min(
+                old_position,
+                len(normalized_text)
+            )
+
+            cursor.clearSelection()
+            cursor.setPosition(new_position)
+
+            self.text_input.setTextCursor(cursor)
+
+            self.statusBar().showMessage(
+                "Text normalized successfully."
+            )
+
+        self._restore_ai_controls()
+
+    def on_ai_normalization_error(self, error_message):
+        QMessageBox.critical(
+            self,
+            "AI Normalize Error",
+            error_message
+        )
+
+        self.statusBar().showMessage(
+            "AI normalization failed."
+        )
+
+        self._restore_ai_controls()
+
+    def _restore_ai_controls(self):
+        self.text_input.setEnabled(True)
+
+        self.text_decrease_button.setEnabled(True)
+        self.text_increase_button.setEnabled(True)
+        self.clear_formatting_button.setEnabled(True)
+        self.clear_text_button.setEnabled(True)
+
+        self.ai_normalize_button.setEnabled(True)
+        self.generate_button.setEnabled(True)
+
+        # Let Qt determine the correct Undo/Redo state
+        self.undo_button.setEnabled(
+            self.text_input.document().isUndoAvailable()
+        )
+
+        self.redo_button.setEnabled(
+            self.text_input.document().isRedoAvailable()
+        )
+
+    def _clear_llm_references(self):
+        self.llm_thread = None
+        self.llm_worker = None
+        
     def clear_all_text(self):
 
         if not self.text_input.toPlainText():
@@ -1321,6 +1515,8 @@ class MainWindow(QMainWindow):
         else:
             print("Reference Audio: Not Required")
 
+        self.is_generating = True
+
         self.set_status("Generating speech...")
         QApplication.processEvents()
 
@@ -1372,6 +1568,8 @@ class MainWindow(QMainWindow):
 
     def on_generation_finished(self, audio_path):
 
+        self.is_generating = False
+
         self.generated_audio_path = audio_path
         self.load_audio(audio_path)
 
@@ -1396,6 +1594,9 @@ class MainWindow(QMainWindow):
         self.generate_button.setEnabled(True)
 
     def on_generation_error(self, message):
+
+        self.is_generating = False
+
         QMessageBox.critical(
             self,
             "Generation Error",
@@ -1472,24 +1673,53 @@ class MainWindow(QMainWindow):
     def handle_playback_state(self, state):
 
         if state == QMediaPlayer.PlayingState:
+
+            self.is_playing = True
+
+            # Generation has priority over playback status
+            if self.is_generating:
+                return
+
             self.set_status("Playing audio...")
 
         elif state == QMediaPlayer.PausedState:
+
+            self.is_playing = False
+
+            if self.is_generating:
+                return
+
             self.set_status("Audio paused.")
             self.reset_status()
 
         elif state == QMediaPlayer.StoppedState:
 
+            self.is_playing = False
+
+            if self.is_generating:
+                return
+
             if self.player.position() == self.player.duration():
+
                 self.set_status("Playback finished.")
                 self.set_status("Audio stopped.")
                 self.reset_status()
 
     def reset_status(self, delay=3000):
 
+        def set_ready():
+
+            if self.is_generating:
+                return
+
+            if self.is_playing:
+                return
+
+            self.set_status("Ready")
+
         QTimer.singleShot(
             delay,
-            lambda: self.set_status("Ready")
+            set_ready
         )
 
     def export_audio(
@@ -1744,8 +1974,23 @@ class MainWindow(QMainWindow):
 
         self.save_settings()
 
+        if self.llama_server:
+            self.llama_server.stop()
+        
         event.accept()
 
+    def on_llama_server_started(self):
+        self.set_status(
+            "AI engine ready."
+        )
+
+    def on_llama_server_failed(self, message):
+        self.set_status(
+            "AI engine unavailable."
+        )
+
+        print(message)
+        
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = MainWindow()
