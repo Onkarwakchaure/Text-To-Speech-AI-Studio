@@ -15,9 +15,12 @@ class LlamaServerManager(QObject):
 
         self.process = None
         self.health_timer = None
+        self.startup_timeout_timer = None
         self._ready = False
+        self._stopping = False
 
     def start(self):
+        self._stopping = False
         # Check whether llama-server is already running
         if self._is_server_running():
             self._ready = True
@@ -69,6 +72,14 @@ class LlamaServerManager(QObject):
         )
         self.health_timer.start(1000)
 
+        # Allow up to 5 minutes for AI engine startup
+        self.startup_timeout_timer = QTimer(self)
+        self.startup_timeout_timer.setSingleShot(True)
+        self.startup_timeout_timer.timeout.connect(
+            self._startup_timeout
+        )
+        self.startup_timeout_timer.start(300000)
+
     def _is_server_running(self):
         try:
             response = requests.get(
@@ -82,18 +93,44 @@ class LlamaServerManager(QObject):
             return False
 
     def _check_health(self):
+
         if self._is_server_running():
             self._ready = True
 
             if self.health_timer:
                 self.health_timer.stop()
 
+            if self.startup_timeout_timer:
+                self.startup_timeout_timer.stop()
+
             self.started.emit()
 
+    def _startup_timeout(self):
+        if self._ready:
+            return
+
+        if self.health_timer:
+            self.health_timer.stop()
+
+        self.stop()
+
+        self.failed.emit(
+            "AI engine startup timed out.\n\n"
+            "The server did not become ready within 5 minutes."
+        )
+        
     def is_ready(self):
         return self._ready and self._is_server_running()
 
     def stop(self):
+
+        self._stopping = True
+
+        if self.startup_timeout_timer:
+            self.startup_timeout_timer.stop()
+            self.startup_timeout_timer.deleteLater()
+            self.startup_timeout_timer = None
+            
         if self.health_timer:
             self.health_timer.stop()
             self.health_timer.deleteLater()
@@ -123,8 +160,18 @@ class LlamaServerManager(QObject):
         )
 
     def _process_finished(self, exit_code, exit_status):
+
         if self._ready:
             self._ready = False
+
+            if self.health_timer:
+                self.health_timer.stop()
+
+            if not self._stopping:
+                self.failed.emit(
+                    "AI engine stopped unexpectedly.\n\n"
+                    f"Exit code: {exit_code}"
+                )
 
     def _read_process_error(self):
         if not self.process:

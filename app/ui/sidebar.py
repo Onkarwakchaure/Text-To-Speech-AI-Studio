@@ -10,6 +10,7 @@ class Sidebar(QWidget):
 
     page_changed = Signal(str)
 
+    BUTTON_SIZE = 36
     EXPANDED_WIDTH = 140
     COLLAPSED_WIDTH = 40
 
@@ -43,7 +44,7 @@ class Sidebar(QWidget):
             QSize(20, 20)
         )
 
-        self.toggle_button.setFixedHeight(40)
+        self.toggle_button.setFixedHeight(self.BUTTON_SIZE)
 
         self.layout.addWidget(
             self.toggle_button
@@ -59,7 +60,7 @@ class Sidebar(QWidget):
         font.setBold(True)
         self.title_button.setFont(font)
 
-        self.title_button.setFixedHeight(40)
+        self.title_button.setFixedHeight(self.BUTTON_SIZE)
 
         self.layout.addWidget(
             self.title_button
@@ -82,7 +83,7 @@ class Sidebar(QWidget):
         font.setPointSize(12)
         self.generate_button.setFont(font)
 
-        self.generate_button.setFixedHeight(40)
+        self.generate_button.setFixedHeight(self.BUTTON_SIZE)
 
         self.layout.addWidget(
             self.generate_button
@@ -105,7 +106,7 @@ class Sidebar(QWidget):
         font.setPointSize(12)
         self.history_button.setFont(font)
 
-        self.history_button.setFixedHeight(40)
+        self.history_button.setFixedHeight(self.BUTTON_SIZE)
 
         self.layout.addWidget(
             self.history_button
@@ -173,8 +174,8 @@ class Sidebar(QWidget):
 
         # Start collapsed
         self.title_button.hide()
-
         self.toggle_button.show()
+        self._set_collapsed_button_sizes()
 
         self.generate_button.setText(
             ""
@@ -206,9 +207,7 @@ class Sidebar(QWidget):
         # Hide title
         self.title_button.hide()
 
-        self.toggle_button.setFixedSize(40, 40)
-        self.generate_button.setFixedSize(40, 40)
-        self.history_button.setFixedSize(40, 40)
+        self._set_collapsed_button_sizes()
 
         # Show menu button
         self.toggle_button.show()
@@ -261,8 +260,12 @@ class Sidebar(QWidget):
 
         self.generate_button.setMinimumWidth(0)
         self.generate_button.setMaximumWidth(16777215)
-        self.generate_button.setFixedHeight(40)
+        self.generate_button.setFixedHeight(self.BUTTON_SIZE)
 
         self.history_button.setMinimumWidth(0)
         self.history_button.setMaximumWidth(16777215)
-        self.history_button.setFixedHeight(40)
+        self.history_button.setFixedHeight(self.BUTTON_SIZE)
+
+    def _set_collapsed_button_sizes(self):
+        for button in (self.toggle_button, self.generate_button, self.history_button):
+            button.setFixedSize(self.BUTTON_SIZE, self.BUTTON_SIZE)
