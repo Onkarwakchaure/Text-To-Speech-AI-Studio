@@ -1,10 +1,14 @@
 import os, sys
+if sys.platform == "win32":
+    import ctypes
 from PySide6.QtCore import QSize, Qt, QUrl, QTime, QTimer, QThread
 from PySide6.QtGui import (
     QIcon,
     QTextCursor,
     QTextCharFormat,
-    QTextBlockFormat
+    QTextBlockFormat,
+    QPalette,
+    QColor
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -24,7 +28,9 @@ from PySide6.QtWidgets import (
     QGroupBox,
     QInputDialog,
     QMenu,
-    QStackedWidget
+    QStackedWidget,
+    QSizePolicy,
+    QScrollArea
     )
 from PySide6.QtMultimedia import (
     QMediaPlayer,
@@ -83,7 +89,7 @@ class MainWindow(QMainWindow):
 
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.set_status("Ready")
+        self.set_status("Loading Other Features...")
 
         main_layout = QHBoxLayout()
         central_widget.setLayout(main_layout)
@@ -134,7 +140,9 @@ class MainWindow(QMainWindow):
         )
 
         ## Text Input Section
-        self.text_zoom = 70
+        self.text_zoom = int(
+            self.settings_manager.load("text_zoom", 70)
+        )
         self.text_input = QTextEdit()
         self.text_input.setPlaceholderText("Type your text here...")
         left_layout.addWidget(self.text_input)
@@ -360,6 +368,17 @@ class MainWindow(QMainWindow):
         self.generate_button.clicked.connect(self.generate_speech)
         left_layout.addWidget(self.generate_button)
 
+        # Audio Player Backend
+        self.player = QMediaPlayer(self)
+        self.audio_output = QAudioOutput(self)
+        self.player.setAudioOutput(self.audio_output)
+
+        self.player.positionChanged.connect(self.update_position)
+        self.player.durationChanged.connect(self.update_duration)
+        self.player.playbackStateChanged.connect(
+            self.handle_playback_state
+        )
+
         # Audio Player 
         audio_layout = QVBoxLayout()
         controls_layout = QHBoxLayout()
@@ -377,6 +396,13 @@ class MainWindow(QMainWindow):
         controls_layout.addWidget(self.stop_button)
         controls_layout.addStretch()
 
+        # Audio Player Connections
+        self.play_button.clicked.connect(self.play_audio)
+        self.pause_button.clicked.connect(self.pause_audio)
+        self.stop_button.clicked.connect(self.stop_audio)
+
+        self.audio_slider.sliderMoved.connect(self.seek_audio)
+
         audio_layout.addLayout(controls_layout)
         audio_layout.addWidget(self.audio_slider)
         audio_layout.addWidget(self.duration_label)
@@ -386,83 +412,77 @@ class MainWindow(QMainWindow):
         self.hide_audio_controls()
 
         ''' Settings Section '''
+
         settings_title = QLabel("Settings")
-        right_layout.addWidget(settings_title)
         settings_title.setStyleSheet(
             "font-size: 16px;"
             "font-weight: bold;"
         )
+        right_layout.addWidget(settings_title)
+
+        # Scrollable settings content
+        settings_scroll = QScrollArea()
+        settings_scroll.setWidgetResizable(True)
+        settings_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
+        )
+        settings_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+
+        settings_scroll.setMinimumWidth(250)
+        settings_scroll.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding
+        )
+
+        settings_content = QWidget()
+        settings_content.setMinimumWidth(0)
+
+        settings_layout = QVBoxLayout(settings_content)
+        settings_layout.setContentsMargins(0, 0, 0, 0)
+        settings_layout.setSpacing(6)
 
         # Engine Selection
         self.engine_label = QLabel("Engine")
-
         self.engine_combo = QComboBox()
-        self.engine_combo.addItems([
-            "XTTS v2",
-            "F5-TTS"
-        ])
-        right_layout.addWidget(self.engine_label)
-        right_layout.addWidget(self.engine_combo)
+        self.engine_combo.addItems(["XTTS v2", "F5-TTS"])
+        settings_layout.addWidget(self.engine_label)
+        settings_layout.addWidget(self.engine_combo)
 
         # Language Selection
         self.language_label = QLabel("Language")
-
         self.language_combo = QComboBox()
-        self.language_combo.addItems([
-            "English",
-            "Hindi"
-        ])
-        right_layout.addWidget(self.language_label)
-        right_layout.addWidget(self.language_combo)
+        self.language_combo.addItems(["English", "Hindi"])
+        settings_layout.addWidget(self.language_label)
+        settings_layout.addWidget(self.language_combo)
 
-        # Voice Mode Selection
+        # Voice Mode
         self.voice_label = QLabel("Voice Mode")
-
         self.voice_combo = QComboBox()
-        self.voice_combo.addItems([
-            "Default Voice",
-            "Voice Cloning"
-        ])
-        right_layout.addWidget(self.voice_label)
-        right_layout.addWidget(self.voice_combo)
+        self.voice_combo.addItems(["Default Voice", "Voice Cloning"])
+        settings_layout.addWidget(self.voice_label)
+        settings_layout.addWidget(self.voice_combo)
 
-        # Default Voice Selection
-
+        # Default Voice
         self.default_voice_label = QLabel("Voice")
-
         self.default_voice_combo = QComboBox()
-        
         speakers = get_available_speakers()
         speakers.sort()
-
         self.default_voice_combo.addItems(speakers)
-        
-        right_layout.addWidget(self.default_voice_label)
-        right_layout.addWidget(self.default_voice_combo)
+
+        settings_layout.addWidget(self.default_voice_label)
+        settings_layout.addWidget(self.default_voice_combo)
         self.default_voice_label.hide()
         self.default_voice_combo.hide()
 
-        # Reference Audio Upload     
+        # Reference Audio
         self.upload_label = QLabel("Reference Audio")
-        self.upload_button = QPushButton(
-            "Select Audio File"
-        )
-        self.selected_file_label = QLabel(
-            "No file selected"
-        )
-
+        self.upload_button = QPushButton("Select Audio File")
+        self.selected_file_label = QLabel("No file selected")
         self.reference_audio_path = None
 
-        # Save Reference Voice
-
-        self.save_voice_button = QPushButton(
-            "Save Voice"
-        )
-
-        self.saved_voices_label = QLabel(
-            "Saved Reference Voices"
-        )
-
+        # Saved Reference Voices
+        self.save_voice_button = QPushButton("Save Voice")
+        self.saved_voices_label = QLabel("Saved Reference Voices")
         self.saved_voices_combo = VoiceComboBox()
         self.saved_voices_combo.rightClicked.connect(
             self.show_voice_context_menu
@@ -476,115 +496,79 @@ class MainWindow(QMainWindow):
             self.save_reference_voice
         )
 
-        right_layout.addWidget(
-            self.upload_label
-        )
-        right_layout.addWidget(
-            self.upload_button
-        )
-        right_layout.addWidget(
-            self.selected_file_label
-        )
-        
-        right_layout.addWidget(
-            self.save_voice_button
-        )
+        settings_layout.addWidget(self.upload_label)
+        settings_layout.addWidget(self.upload_button)
+        settings_layout.addWidget(self.selected_file_label)
+        settings_layout.addWidget(self.save_voice_button)
+        settings_layout.addWidget(self.saved_voices_label)
+        settings_layout.addWidget(self.saved_voices_combo)
 
-        right_layout.addWidget(
-            self.saved_voices_label
-        )
-
-        right_layout.addWidget(
-            self.saved_voices_combo
-        )
         self.upload_label.hide()
         self.upload_button.hide()
         self.selected_file_label.hide()
 
-        self.upload_button.clicked.connect(
-            self.select_audio_file
-        )
+        self.upload_button.clicked.connect(self.select_audio_file)
         self.saved_voices_combo.textActivated.connect(
             self.select_saved_voice
         )
 
-        self.player = QMediaPlayer()
-        self.audio_output = QAudioOutput()
-
-        self.player.setAudioOutput(self.audio_output)
-
-        self.play_button.clicked.connect(self.play_audio)
-        self.pause_button.clicked.connect(self.pause_audio)
-        self.stop_button.clicked.connect(self.stop_audio)
-        self.player.durationChanged.connect(self.update_duration)
-        self.player.positionChanged.connect(self.update_position)
-        self.player.playbackStateChanged.connect(self.handle_playback_state)
-        self.audio_slider.sliderMoved.connect(self.seek_audio)
-
         # Output Format
         self.output_label = QLabel("Output Format")
-
         self.output_combo = QComboBox()
-        self.output_combo.addItems([
-            "MP3",
-            "WAV",
-            "FLAC",
-            "OGG"
-        ])
-        right_layout.addWidget(self.output_label)
-        right_layout.addWidget(self.output_combo)
+        self.output_combo.addItems(["MP3", "WAV", "FLAC", "OGG"])
 
-        ''' F5-TTS Settings '''
+        settings_layout.addWidget(self.output_label)
+        settings_layout.addWidget(self.output_combo)
 
-        # Advanced Settings Group Box
-
+        # F5-TTS Advanced Settings
         self.advanced_settings = QGroupBox("Advanced Settings")
         self.advanced_settings.setCheckable(True)
         self.advanced_settings.setChecked(False)
 
         advanced_layout = QVBoxLayout()
 
-        # F5 Speed
         self.f5_speed_label = QLabel("Speed")
-
         self.f5_speed_spinbox = QDoubleSpinBox()
         self.f5_speed_spinbox.setRange(0.5, 1.5)
         self.f5_speed_spinbox.setSingleStep(0.1)
         self.f5_speed_spinbox.setValue(0.9)
+        self.f5_speed_spinbox.setMinimumWidth(150)
 
         advanced_layout.addWidget(self.f5_speed_label)
         advanced_layout.addWidget(self.f5_speed_spinbox)
-
-        # F5 Reference Text
 
         self.f5_reference_text_label = QLabel("Reference Text")
         self.f5_reference_text = QTextEdit()
         self.f5_reference_text.setPlaceholderText(
             "Optional — enter text spoken in reference audio..."
         )
-        self.f5_reference_text.setFixedHeight(80)
+        self.f5_reference_text.setMinimumHeight(70)
+        self.f5_reference_text.setMaximumHeight(90)
+        self.f5_reference_text.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Preferred
+        )
 
         advanced_layout.addWidget(self.f5_reference_text_label)
         advanced_layout.addWidget(self.f5_reference_text)
 
-        self.advanced_settings.setLayout(advanced_layout)
+        self.f5_remove_silence = QCheckBox("Remove Silence")
+        advanced_layout.addWidget(self.f5_remove_silence)
 
-        right_layout.addWidget(self.advanced_settings)
+        self.advanced_settings.setLayout(advanced_layout)
+        self.advanced_settings.setMinimumHeight(220)
+        settings_layout.addWidget(self.advanced_settings)
 
         self.advanced_settings.toggled.connect(
             self.toggle_advanced_settings
         )
 
-        # F5 Remove Silence
-        self.f5_remove_silence = QCheckBox("Remove Silence")
+        # Finish scrollable content
+        settings_layout.addStretch()
+        settings_scroll.setWidget(settings_content)
+        right_layout.addWidget(settings_scroll, 1)
 
-        advanced_layout.addWidget(
-            self.f5_remove_silence
-        )
-
-        # Download Button
-        right_layout.addStretch()
-
+        # Download Button 
         self.download_button = QPushButton("Download Output")
         right_layout.addWidget(self.download_button)
         right_layout.addSpacing(10)
@@ -644,18 +628,17 @@ class MainWindow(QMainWindow):
         )
 
     def change_page(self, page):
-
         if page == "generate":
+            self.page_stack.setCurrentWidget(self.tts_page)
 
-            self.page_stack.setCurrentWidget(
-                self.tts_page
-            )
+            if self.generated_audio_path:
+                self.show_download_button()
+            else:
+                self.hide_download_button()
 
         elif page == "history":
-
-            self.page_stack.setCurrentWidget(
-                self.history_page
-            )
+            self.page_stack.setCurrentWidget(self.history_page)
+            self.hide_download_button()
 
     def release_history_audio(
         self,
@@ -838,7 +821,7 @@ class MainWindow(QMainWindow):
             return
 
         self.statusBar().showMessage(
-            "AI is normalizing your text..."
+            "Application Status : Normalizing text..."
         )
 
         # Disable controls while AI is working
@@ -905,7 +888,7 @@ class MainWindow(QMainWindow):
 
         if normalized_text == original_text:
             self.statusBar().showMessage(
-                "AI found no changes."
+                "Application Status : Text normalization completed, but no changes were made."
             )
         else:
             cursor = self.text_input.textCursor()
@@ -933,7 +916,7 @@ class MainWindow(QMainWindow):
             self.text_input.setTextCursor(cursor)
 
             self.statusBar().showMessage(
-                "Text normalized successfully."
+                "Application Status : Text normalized successfully."
             )
 
         self._restore_ai_controls()
@@ -941,12 +924,12 @@ class MainWindow(QMainWindow):
     def on_ai_normalization_error(self, error_message):
         QMessageBox.critical(
             self,
-            "AI Normalize Error",
+            "Text Normalization Error",
             error_message
         )
 
         self.statusBar().showMessage(
-            "AI normalization failed."
+            "Application Status : Text normalization failed."
         )
 
         self._restore_ai_controls()
@@ -1547,24 +1530,26 @@ class MainWindow(QMainWindow):
         # Worker signals
         self.worker.finished.connect(self.on_generation_finished)
         self.worker.error.connect(self.on_generation_error)
-
+        
+        
         # Cleanup
         self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.error.connect(self.thread.quit)
 
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.error.connect(self.worker.deleteLater)
+
+        self.thread.finished.connect(self.thread.deleteLater)
+        
         self.generate_button.setEnabled(False)
         self.thread.start()
 
     def toggle_advanced_settings(self, checked):
-
-        self.f5_speed_label.setVisible(checked)
-        self.f5_speed_spinbox.setVisible(checked)
-
-        self.f5_reference_text_label.setVisible(checked)
-        self.f5_reference_text.setVisible(checked)
-
-        self.f5_remove_silence.setVisible(checked)
+        self.f5_speed_label.setEnabled(checked)
+        self.f5_speed_spinbox.setEnabled(checked)
+        self.f5_reference_text_label.setEnabled(checked)
+        self.f5_reference_text.setEnabled(checked)
+        self.f5_remove_silence.setEnabled(checked)
 
     def on_generation_finished(self, audio_path):
 
@@ -1578,7 +1563,12 @@ class MainWindow(QMainWindow):
             self.engine_combo.currentText(),
             self.language_combo.currentText(),
             self.voice_combo.currentText(),
-            self.default_voice_combo.currentText(),
+            (
+                os.path.basename(self.reference_audio_path)
+                if self.voice_combo.currentText() == "Voice Cloning"
+                and self.reference_audio_path
+                else self.default_voice_combo.currentText()
+            ),
             self.reference_audio_path,
             self.f5_speed_spinbox.value(),
             self.f5_reference_text.toPlainText().strip(),
@@ -1838,6 +1828,14 @@ class MainWindow(QMainWindow):
     
     def load_settings(self):
 
+        # Restore window size and position
+        window_geometry = self.settings_manager.load(
+            "window_geometry"
+        )
+
+        if window_geometry:
+            self.restoreGeometry(window_geometry)
+            
         self.last_save_directory = self.settings_manager.load(
             "last_save_directory",
             ""
@@ -1920,6 +1918,17 @@ class MainWindow(QMainWindow):
     
     def save_settings(self):
 
+        # Save window size and position
+        self.settings_manager.save(
+            "window_geometry",
+            self.saveGeometry()
+        )
+
+        self.settings_manager.save(
+            "text_zoom",
+            self.text_zoom
+        )
+        
         self.settings_manager.save(
             "last_save_directory",
             self.last_save_directory
@@ -1981,18 +1990,82 @@ class MainWindow(QMainWindow):
 
     def on_llama_server_started(self):
         self.set_status(
-            "AI engine ready."
+            "Text Normalization is ready."
         )
+        self.reset_status()
 
     def on_llama_server_failed(self, message):
         self.set_status(
-            "AI engine unavailable."
+            "Text Normalization is unavailable."
         )
 
         print(message)
         
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # Force the app to ignore the Windows light/dark setting
+    if hasattr(app.styleHints(), "setColorScheme"):      # PySide6 / Qt 6.8+
+        app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
+    else:                                                # older versions
+        app.setStyle("Fusion")
+        
+    app.setPalette(QPalette())
+    palette = app.palette()
+    palette.setColor(QPalette.ColorRole.Window, QColor("#0C070F"))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.Base, QColor("#120B18"))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#2b2b2b"))
+    palette.setColor(QPalette.ColorRole.Text, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.Button, QColor("#212121"))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor("#3d6fa6"))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
+
+    palette.setColor(QPalette.ColorRole.PlaceholderText, QColor("#77717D"))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor("#1A101F"))
+    palette.setColor(QPalette.ColorRole.ToolTipText, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.Light, QColor("#3a3a3a"))
+    palette.setColor(QPalette.ColorRole.Midlight, QColor("#2e2e2e"))
+    palette.setColor(QPalette.ColorRole.Mid, QColor("#2a2230"))
+    palette.setColor(QPalette.ColorRole.Dark, QColor("#0C070F"))
+    palette.setColor(QPalette.ColorRole.Shadow, QColor("#000000"))
+    palette.setColor(QPalette.ColorRole.Link, QColor("#4a86c5"))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor("#77717D"))
+
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.WindowText, QColor("#77717D"))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor("#77717D"))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor("#77717D"))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Base, QColor("#211927"))
+    palette.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Button, QColor("#211927"))
+
+    app.setPalette(palette)
+
     window = MainWindow()
+    
+    def set_dark_title_bar(window, color=(12, 7, 15)):
+        if sys.platform != "win32":
+            return
+
+        try:
+            hwnd = int(window.winId())
+            dwmapi = ctypes.windll.dwmapi
+
+            value = ctypes.c_int(1)
+            dwmapi.DwmSetWindowAttribute(
+                hwnd, 20, ctypes.byref(value), ctypes.sizeof(value)
+            )
+
+            color_value = ctypes.c_int(
+                color[0] | (color[1] << 8) | (color[2] << 16)
+            )
+            dwmapi.DwmSetWindowAttribute(
+                hwnd, 35, ctypes.byref(color_value),
+                ctypes.sizeof(color_value)
+            )
+        except Exception as exc:
+            print(f"Could not customize title bar: {exc}")
+
     window.show()
+    set_dark_title_bar(window)
     sys.exit(app.exec())
